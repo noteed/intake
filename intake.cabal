@@ -11,14 +11,20 @@ author:              Vo Minh Thu
 maintainer:          thu@hypered.be
 build-type:          Simple
 
+library
+  build-depends:       base == 4.*,
+                       directory == 1.2.*,
+                       filepath == 1.3.*,
+                       MonadRandom == 0.1.*
+  exposed-modules:     Intake
+  ghc-options:         -Wall
+
 executable intake
   hs-source-dirs:      bin
   main-is:             intake.hs
   build-depends:       base == 4.*,
-                       directory == 1.2.*,
-                       filepath == 1.3.*,
                        HUnit == 1.2.*,
-                       MonadRandom == 0.1.*,
+                       intake,
                        test-framework == 0.8.*,
                        test-framework-hunit == 0.3.*
   ghc-options:         -Wall
