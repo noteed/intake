@@ -10,6 +10,9 @@ import System.Directory
   , getHomeDirectory)
 import System.Environment (getArgs)
 import System.FilePath ((</>))
+import Test.HUnit (assertEqual, assertFailure)
+import Test.Framework (defaultMain, testGroup, Test)
+import Test.Framework.Providers.HUnit (testCase)
 
 main :: IO ()
 main = do
@@ -21,6 +24,8 @@ main = do
     ["status", i'] -> do
       e <- loadEnvironment (WorkflowIdPrefix i')
       putStrLn $ show $ status e
+    [] -> do
+      defaultMain tests
 
 ----------------------------------------------------------------------
 -- Types
@@ -31,11 +36,11 @@ newtype WorkflowIdPrefix = WorkflowIdPrefix String
 
 -- | Some random string to identify a workflow instance.
 newtype WorkflowId = WorkflowId String
-  deriving Show
+  deriving (Eq, Show)
 
 -- | Identify a workflow configuration, as registered with `intake define`.
 newtype WorkflowName = WorkflowName String
-  deriving Show
+  deriving (Eq, Show)
 
 data Workflow =
     Job String [String] -- ^ command and arguments
@@ -50,7 +55,7 @@ data WorkflowState =
   | SSequence WorkflowState WorkflowState
   | SParallel WorkflowState WorkflowState
   | SRetry Int Int WorkflowState -- ^ Maximum allowed attempts , already tried.
-  deriving Show
+  deriving (Eq, Show)
 
 data JStatus = Waiting | Ready | Started | Completed
   deriving (Eq, Ord, Show, Read)
@@ -61,14 +66,14 @@ data WorkflowEnv = WorkflowEnv
   , envArguments :: [String]
   , envState :: WorkflowState
   }
-  deriving Show
+  deriving (Eq, Show)
 
 newtype Run = Run Int
-  deriving Show
+  deriving (Eq, Show)
 
 -- | Whole Workflow status.
 data WStatus = WInstanciated | WStarted [Int] | WCompleted
-  deriving Show
+  deriving (Eq, Show)
 
 ----------------------------------------------------------------------
 -- IO
@@ -183,6 +188,7 @@ step' :: WorkflowState -> (WorkflowState, [Run])
 step' s = do
   case s of
     SJob l cmd args Ready -> (SJob l cmd args Started, [Run l])
+    job -> (job, [])
 
 extract :: WorkflowEnv -> Run -> (String, [String])
 extract e (Run l) = case envState e of
@@ -202,8 +208,20 @@ setStatus l s e = case envState e of
 -- Tests
 ----------------------------------------------------------------------
 
-test0 :: (WorkflowEnv, [Run])
-test0 = step $ wrap $ echo "a"
+tests :: [Test]
+tests =
+  [ testCase "echo a" $ do
+      assertEqual "instanciated" WInstanciated (status echoA)
+      assertEqual "started" (WStarted [0]) (status . fst $ step echoA)
+      assertEqual "run 0" [Run 0] (snd $ step echoA)
+      assertEqual "nothing to change" (fst $ step echoA) (fst. step . fst $ step echoA)
+      assertEqual "nothing to run" [] (snd . step . fst $ step echoA)
+      assertEqual "completed" (WCompleted) (status . setStatus 0 Completed . fst $ step echoA)
+      assertEqual "nothing to run" [] (snd . step . setStatus 0 Completed . fst $ step echoA)
+  ]
+
+echoA :: WorkflowEnv
+echoA = wrap $ echo "a"
 
 echo :: String -> Workflow
 echo s = Job "echo" $ words s
