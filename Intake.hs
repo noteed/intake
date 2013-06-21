@@ -204,7 +204,7 @@ labelWorkflow l w = case w of
                       (b', l'') = labelWorkflow l' b
                   in (SParallel a' b', l'')
   Retry n a -> let (a', l') = labelWorkflow l a
-               in (SRetry 0 n a', l')
+               in (SRetry n 0 a', l')
 
 makeReady  :: Bool -> WorkflowState -> (WorkflowState, Bool)
 makeReady ready w = case w of

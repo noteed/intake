@@ -83,6 +83,9 @@ tests =
       assertEqual "nothing to run" [] (snd . step . complete 1 . fst $ step echoAB')
       assertEqual "nothing to run" [] (snd . step . complete 1 . fst . step . complete 0 . fst $ step echoAB')
       assertBool "completed" (isCompleted . envState . complete 1 . fst . step . complete 0 . fst $ step echoAB')
+
+  , testCase "echo a /2" $ do
+      assertEqual "instanciated" (wrap' $ SRetry 2 0 $ SJob 0 "echo" ["a"] Ready) (echoRA)
   ]
 
 echoA :: WorkflowEnv
