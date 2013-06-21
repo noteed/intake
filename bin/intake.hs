@@ -86,6 +86,11 @@ tests =
 
   , testCase "echo a /2" $ do
       assertEqual "instanciated" (wrap' $ SRetry 2 0 $ SJob 0 "echo" ["a"] Ready) (echoRA)
+      assertEqual "instanciated'" WInstanciated (status echoRA)
+      assertEqual "run 0" [Run 0] (snd $ step echoRA)
+      assertEqual "started" (WStarted [0]) (status . fst $ step echoRA)
+      assertEqual "completed" (WCompleted) (status . complete 0 . fst $ step echoRA)
+      assertBool "completed" (isCompleted . envState . complete 0 . fst $ step echoRA)
   ]
 
 echoA :: WorkflowEnv
@@ -110,6 +115,8 @@ wrap' :: WorkflowState -> WorkflowEnv
 wrap' = WorkflowEnv (WorkflowName "test") (WorkflowId "_") []
 
 -- property: if `step` issues some Run l, the state of the Job l is Started.
+
+-- property: `retry n a` behaves as `a` when a does not fail.
 
 ----------------------------------------------------------------------
 -- Command-line

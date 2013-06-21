@@ -242,6 +242,9 @@ step' s = do
       let (a', ars) = step' a
           (b', brs) = step' b
       in (SParallel a' b', ars ++ brs)
+    SRetry m n a ->
+      let (a', rs) = step' a
+      in (SRetry m (succ n) a', rs) -- TODO take into account failures.
     job -> (job, [])
 
 isCompleted :: WorkflowState -> Bool
@@ -285,6 +288,7 @@ status' s = case s of
     (_, WStarted bs) -> WStarted bs
     (WCompleted, WInstanciated) -> WStarted []
     (WInstanciated, WCompleted) -> WStarted []
+  SRetry _ _ a -> status' a
   _ -> WInstanciated
 
 setStatus :: Int -> JStatus -> WorkflowEnv -> WorkflowEnv
@@ -295,6 +299,7 @@ setStatus' l st s = case s of
                        | otherwise -> SJob l' cmd args st'
   SSequence a b -> setStatus' l st a `SSequence` setStatus' l st b
   SParallel a b -> setStatus' l st a `SParallel` setStatus' l st b
+  SRetry m n a -> SRetry m n $ setStatus' l st a
 
 complete l e = e { envState = fst $ makeReady False $ complete' l $ envState e }
 
