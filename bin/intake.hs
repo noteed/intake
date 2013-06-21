@@ -68,9 +68,21 @@ tests =
       assertEqual "still started" (WStarted [1]) (status . fst . step . complete 0 . fst $ step echoAB)
       assertEqual "completed" (WCompleted) (status . complete 1 . fst . step . complete 0 . fst $ step echoAB)
       assertEqual "nothing to run" [] (snd . step . complete 1 . fst . step . complete 0 . fst $ step echoAB)
+      assertBool "completed" (isCompleted . envState . complete 1 . fst . step . complete 0 . fst $ step echoAB)
 
   , testCase "echo a // echo b" $ do
       assertEqual "instanciated" (wrap' $ SJob 0 "echo" ["a"] Ready `SParallel` SJob 1 "echo" ["b"] Ready) (echoAB')
+      assertEqual "instanciated'" WInstanciated (status echoAB')
+      assertEqual "run 0 and 1" [Run 0, Run 1] (snd $ step echoAB')
+      assertEqual "started" (WStarted [0, 1]) (status . fst $ step echoAB')
+      assertEqual "still started" (WStarted [1]) (status . complete 0 . fst $ step echoAB')
+      assertEqual "still started" (WStarted [0]) (status . complete 1 . fst $ step echoAB')
+      assertEqual "still started" (WCompleted) (status . complete 0 . complete 1 . fst $ step echoAB')
+      assertEqual "still started" (WCompleted) (status . complete 1 . complete 0 . fst $ step echoAB')
+      assertEqual "nothing to run" [] (snd . step . complete 0 . fst $ step echoAB')
+      assertEqual "nothing to run" [] (snd . step . complete 1 . fst $ step echoAB')
+      assertEqual "nothing to run" [] (snd . step . complete 1 . fst . step . complete 0 . fst $ step echoAB')
+      assertBool "completed" (isCompleted . envState . complete 1 . fst . step . complete 0 . fst $ step echoAB')
   ]
 
 echoA :: WorkflowEnv

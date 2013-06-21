@@ -238,6 +238,10 @@ step' s = do
            in (SSequence a b', rs)
       else let (a', rs) = step' a
            in (SSequence a' b, rs)
+    SParallel a b ->
+      let (a', ars) = step' a
+          (b', brs) = step' b
+      in (SParallel a' b', ars ++ brs)
     job -> (job, [])
 
 isCompleted :: WorkflowState -> Bool
@@ -268,6 +272,14 @@ status' s = case s of
   SSequence a b -> case (status' a, status' b) of
     (WCompleted, WCompleted) -> WCompleted
     (WInstanciated, WInstanciated) -> WInstanciated
+    (WStarted as, WStarted bs) -> WStarted $ as ++ bs -- I guess this can't happen.
+    (WStarted as, _) -> WStarted as
+    (_, WStarted bs) -> WStarted bs
+    (WCompleted, WInstanciated) -> WStarted []
+    (WInstanciated, WCompleted) -> WStarted []
+  SParallel a b -> case (status' a, status' b) of
+    (WCompleted, WCompleted) -> WCompleted
+    (WInstanciated, WInstanciated) -> WInstanciated
     (WStarted as, WStarted bs) -> WStarted $ as ++ bs
     (WStarted as, _) -> WStarted as
     (_, WStarted bs) -> WStarted bs
@@ -282,6 +294,7 @@ setStatus' l st s = case s of
   SJob l' cmd args st' | l == l' -> SJob l' cmd args st
                        | otherwise -> SJob l' cmd args st'
   SSequence a b -> setStatus' l st a `SSequence` setStatus' l st b
+  SParallel a b -> setStatus' l st a `SParallel` setStatus' l st b
 
 complete l e = e { envState = fst $ makeReady False $ complete' l $ envState e }
 
