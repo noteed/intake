@@ -63,7 +63,7 @@ instance Eq WorkflowState where
   SJob i cmd args s == SJob i' cmd' args' s' = i == i' && cmd == cmd'
    && args == args' && s == s'
   SSequence a b == SSequence a' b' = a == a' && b == b'
-  SParallel a b == SSequence a' b' = a == a' && b == b'
+  SParallel a b == SParallel a' b' = a == a' && b == b'
   SRetry m n a == SRetry m' n' a' = m == m' && n == n' && a == a'
   _ == _ = False
 
