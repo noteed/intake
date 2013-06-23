@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
-module Intake where
+module Intake.Core where
 
 import Control.Applicative ((<$>))
 import Control.Monad (filterM)
@@ -102,6 +102,11 @@ instance Eq Run where
 -- | Whole Workflow status.
 data WStatus = WInstanciated | WStarted [Int] | WCompleted
   deriving (Eq, Show)
+
+-- | Backend to run a workflow.
+data Backend = Backend
+  { backendLoadWorkflow :: WorkflowName -> WorkflowId -> [String] -> IO WorkflowEnv
+  , backendStartJob :: WorkflowId -> WorkflowEnv -> Run -> IO ()
 
 ----------------------------------------------------------------------
 -- IO

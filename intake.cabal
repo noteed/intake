@@ -16,7 +16,7 @@ library
                        directory == 1.2.*,
                        filepath == 1.3.*,
                        MonadRandom == 0.1.*
-  exposed-modules:     Intake
+  exposed-modules:     Intake.Core
   ghc-options:         -Wall
 
 executable intake

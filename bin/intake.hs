@@ -5,7 +5,7 @@ import Test.HUnit (assertBool, assertEqual)
 import Test.Framework (defaultMain, Test)
 import Test.Framework.Providers.HUnit (testCase)
 
-import Intake
+import Intake.Core
 
 main :: IO ()
 main = do
