@@ -16,10 +16,10 @@ import System.IO (withFile, IOMode(WriteMode))
 import System.Process
 import System.Process.Internals (ProcessHandle(..), ProcessHandle__(..))
 
-import Intake.Core hiding (advance, inspect, instanciate)
+import Intake.Core hiding (advance, inspect, instanciate, logs)
 
 backend :: Backend
-backend = Backend instanciate inspect advance
+backend = Backend instanciate inspect advance logs
 
 -- | Implement `Intake.Core.instanciate`.
 instanciate :: (Either String WorkflowName) -> [String] -> IO WorkflowId
@@ -107,16 +107,9 @@ saveEnvironment e = do
   writeFile (dir </> "arguments") (show $ envArguments e)
 
 inspect :: WorkflowIdPrefix -> IO WorkflowEnv
-inspect (WorkflowIdPrefix i') = do
-  home <- getHomeDirectory
-  let dir = home </> ".intake"
-  content_ <- getDirectoryContents dir
-  let content = filter (\d -> i' `isPrefixOf` d) content_
-  dirs <- filterM (doesDirectoryExist . (dir </>)) content
-  case dirs of
-    [] -> error "No such build."
-    [i] -> loadEnvironment (WorkflowId i)
-    _ -> error "More than one build."
+inspect i = do
+  i' <- fullWorkflowId i
+  loadEnvironment i'
   
 loadEnvironment :: WorkflowId -> IO WorkflowEnv
 loadEnvironment i@(WorkflowId i') = do
@@ -139,6 +132,25 @@ loadEnvironment i@(WorkflowId i') = do
   dirs <- filterM (doesDirectoryExist . (dir </>)) content
   states <- mapM (readFile . (\d -> dir </> d </> "state")) dirs
   return $ foldl' (\x (l, s) -> setStatus (read l) (read s) x) e $ zip dirs states
+
+logs :: WorkflowIdPrefix -> IO String
+logs i = do
+  (WorkflowId i') <- fullWorkflowId i
+  home <- getHomeDirectory
+  let dir = home </> ".intake" </> i' </> "0" --TODO
+  readFile $ dir </> "stdout"
+
+fullWorkflowId :: WorkflowIdPrefix -> IO WorkflowId
+fullWorkflowId (WorkflowIdPrefix i') = do
+  home <- getHomeDirectory
+  let dir = home </> ".intake"
+  content_ <- getDirectoryContents dir
+  let content = filter (\d -> i' `isPrefixOf` d) content_
+  dirs <- filterM (doesDirectoryExist . (dir </>)) content
+  case dirs of
+    [] -> error "No such instance."
+    [i] -> return $ WorkflowId i
+    _ -> error "More than one instance."
 
 -- | Convenience function to turn a ProcessHandle into an Int.
 processHandleToInt :: ProcessHandle -> IO (Either ExitCode Int)

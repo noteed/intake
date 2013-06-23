@@ -16,6 +16,7 @@ main :: IO ()
 main = (runCmd =<<) . cmdArgs $ modes
   [ cmdRun
   , cmdStatus
+  , cmdLogs
   , cmdShow
   , cmdTests &= auto
   ]
@@ -35,6 +36,9 @@ data Cmd =
     , cmdCommand :: Bool
     }
   | CmdStatus
+    { cmdWorkflowIdPrefix :: String
+    }
+  | CmdLogs
     { cmdWorkflowIdPrefix :: String
     }
   | CmdShow
@@ -72,6 +76,17 @@ cmdStatus = CmdStatus
     &= explicit
     &= name "status"
 
+-- | Create a 'Logs' command.
+cmdLogs :: Cmd
+cmdLogs = CmdLogs
+  { cmdWorkflowIdPrefix = def
+    &= argPos 0
+    &= typ "ID"
+  } &= help "Display the logs (stdout only) of a workflow instance. \
+      \TODO This only displays the logs for job #0."
+    &= explicit
+    &= name "logs"
+
 -- | Create a 'Show' command, used to improve code coverage. TODO remove it.
 cmdShow :: Cmd
 cmdShow = CmdShow
@@ -103,6 +118,10 @@ runCmd CmdRun{..} =
 runCmd CmdStatus{..} = do
   e <- inspect backend (WorkflowIdPrefix cmdWorkflowIdPrefix)
   putStrLn $ show $ status e
+
+runCmd CmdLogs{..} = do
+  ls <- logs backend (WorkflowIdPrefix cmdWorkflowIdPrefix)
+  putStr ls
 
 runCmd CmdShow{..} = do
   case cmdMaybeWorkflowIdPrefix of

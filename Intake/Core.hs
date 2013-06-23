@@ -101,6 +101,8 @@ data Backend = Backend
   -- ^ Return a complete representation of a workflow instance.
   , advance :: WorkflowId -> IO ()
   -- ^ Advance the workflow.
+  , logs :: WorkflowIdPrefix -> IO String
+  -- ^ Return the logs (stdout only) of a workflow instance.
   }
 
 ----------------------------------------------------------------------
