@@ -32,6 +32,7 @@ data Cmd =
     CmdRun
     { cmdWorkflowName :: String
     , cmdArguments :: [String]
+    , cmdCommand :: Bool
     }
   | CmdStatus
     { cmdWorkflowIdPrefix :: String
@@ -51,6 +52,12 @@ cmdRun = CmdRun
   , cmdArguments = def
     &= args
     &= typ "ARGS"
+  , cmdCommand = def
+    &= explicit
+    &= name "c"
+    &= help "When this flag is given, accepts a command instead of a workflow\
+      \ name. A workflow with the command as its sole job is then\
+      \ instanciated and run."
   } &= help "Run a workflow with the provided arguments."
     &= explicit
     &= name "run"
@@ -83,9 +90,15 @@ cmdTests = CmdTests
     &= name "tests"
 
 runCmd :: Cmd -> IO ()
-runCmd CmdRun{..} = do
-  WorkflowId i <- run backend (WorkflowName cmdWorkflowName) cmdArguments
-  putStrLn $ take 12 i ++ "  " ++ i
+runCmd CmdRun{..} =
+  if cmdCommand
+  then do
+    WorkflowId i <- run backend (Left cmdWorkflowName) cmdArguments
+    putStrLn $ take 12 i ++ "  " ++ i
+  else do
+    WorkflowId i <-
+      run backend (Right $ WorkflowName cmdWorkflowName) cmdArguments
+    putStrLn $ take 12 i ++ "  " ++ i
 
 runCmd CmdStatus{..} = do
   e <- inspect backend (WorkflowIdPrefix cmdWorkflowIdPrefix)
@@ -186,7 +199,7 @@ wrap :: Workflow -> WorkflowEnv
 wrap = wrap' . initializeWorkflow
 
 wrap' :: WorkflowState -> WorkflowEnv
-wrap' = WorkflowEnv (WorkflowName "test") (WorkflowId "_") []
+wrap' = WorkflowEnv (Right $ WorkflowName "test") (WorkflowId "_") []
 
 -- property: if `step` issues some Run l, the state of the Job l is Started.
 

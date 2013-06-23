@@ -8,8 +8,8 @@ import Control.Monad (filterM)
 import qualified Control.Monad.Random as R
 import Data.List (foldl', isPrefixOf)
 import System.Directory
-  ( createDirectoryIfMissing, doesDirectoryExist, getDirectoryContents
-  , getHomeDirectory)
+  ( createDirectoryIfMissing, doesDirectoryExist, doesFileExist
+  , getDirectoryContents, getHomeDirectory)
 import System.Exit (ExitCode(..))
 import System.FilePath ((</>))
 import System.IO (withFile, IOMode(WriteMode))
@@ -22,12 +22,18 @@ backend :: Backend
 backend = Backend instanciate inspect advance
 
 -- | Implement `Intake.Core.instanciate`.
-instanciate :: WorkflowName -> [String] -> IO WorkflowId
-instanciate name@(WorkflowName n) arguments = do
+instanciate :: (Either String WorkflowName) -> [String] -> IO WorkflowId
+instanciate name arguments = do
   i@(WorkflowId i') <- newWorkflowId
-  putStrLn $ take 12 i' ++ "  Instanciating workflow `" ++ n ++ "` with arguments "
-    ++ show arguments ++ "."
-  e <- loadWorkflow name i arguments
+  e <- case name of
+    Left cmd -> do
+      putStrLn $ take 12 i' ++ "  Instanciating command `" ++ cmd ++
+       "` with arguments " ++ show arguments ++ "."
+      makeWorkflow cmd i arguments
+    Right (WorkflowName n) -> do
+      putStrLn $ take 12 i' ++ "  Instanciating workflow `" ++ n ++
+        "` with arguments " ++ show arguments ++ "."
+      loadWorkflow (WorkflowName n) i arguments
   saveEnvironment e
   return i
 
@@ -67,11 +73,17 @@ start e r = do
     Left ExitSuccess -> writeFile (dir </> "exitcode") "0"
     Left (ExitFailure c) -> writeFile (dir </> "exitcode") $ show c
 
+makeWorkflow :: String -> WorkflowId -> [String] -> IO WorkflowEnv
+makeWorkflow cmd i arguments = do
+  let w = Job cmd arguments
+      s = initializeWorkflow w
+  return $ WorkflowEnv (Left cmd) i arguments s
+
 loadWorkflow :: WorkflowName -> WorkflowId -> [String] -> IO WorkflowEnv
 loadWorkflow name i arguments = do
   w <- readWorkflow name arguments
   let s = initializeWorkflow w
-  return $ WorkflowEnv name i arguments s
+  return $ WorkflowEnv (Right name) i arguments s
 
 -- TODO return a Maybe.
 readWorkflow :: WorkflowName -> [String] -> IO Workflow
@@ -88,9 +100,10 @@ saveEnvironment e = do
   home <- getHomeDirectory
   let WorkflowId i' = envId e
       dir = home </> ".intake" </> i'
-      WorkflowName n = envName e
   createDirectoryIfMissing True dir
-  writeFile (dir </> "workflow") n
+  case envName e of
+    Right (WorkflowName n) -> writeFile (dir </> "workflow") n
+    Left cmd -> writeFile (dir </> "command") cmd
   writeFile (dir </> "arguments") (show $ envArguments e)
 
 inspect :: WorkflowIdPrefix -> IO WorkflowEnv
@@ -109,9 +122,16 @@ loadEnvironment :: WorkflowId -> IO WorkflowEnv
 loadEnvironment i@(WorkflowId i') = do
   home <- getHomeDirectory
   let dir = home </> ".intake" </> i'
-  name <- readFile $ dir </> "workflow"
   arguments <- readFile $ dir </> "arguments"
-  e <- loadWorkflow (WorkflowName name) i (read arguments)
+  exist <- doesFileExist (dir </> "command")
+  e <-
+    if exist
+    then do
+      cmd <- readFile $ dir </> "command"
+      makeWorkflow cmd i (read arguments)
+    else do
+      name <- readFile $ dir </> "workflow"
+      loadWorkflow (WorkflowName name) i (read arguments)
   -- TODO will the file be kept open if the envArguments is never needed ?
 
   content_ <- getDirectoryContents $ dir

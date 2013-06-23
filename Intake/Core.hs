@@ -62,7 +62,7 @@ data JStatus = Waiting | Ready | Started | Completed
   deriving (Eq, Show, Read)
 
 data WorkflowEnv = WorkflowEnv
-  { envName :: WorkflowName
+  { envName :: (Either String WorkflowName)
   , envId :: WorkflowId
   , envArguments :: [String]
   , envState :: WorkflowState
@@ -95,7 +95,7 @@ data WStatus = WInstanciated | WStarted [Int] | WCompleted
   deriving (Eq, Show)
 
 data Backend = Backend
-  { instanciate :: WorkflowName -> [String] -> IO WorkflowId
+  { instanciate :: (Either String WorkflowName) -> [String] -> IO WorkflowId
   -- ^ Instanciate a workflow with the given arguments.
   , inspect :: WorkflowIdPrefix -> IO WorkflowEnv
   -- ^ Return a complete representation of a workflow instance.
@@ -107,7 +107,7 @@ data Backend = Backend
 -- IO
 ----------------------------------------------------------------------
 
-run :: Backend -> WorkflowName -> [String] -> IO WorkflowId
+run :: Backend -> (Either String WorkflowName) -> [String] -> IO WorkflowId
 run backend name arguments = do
   i <- instanciate backend name arguments
   advance backend i
