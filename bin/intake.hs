@@ -1,6 +1,10 @@
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
-import System.Environment (getArgs)
+import Data.Version (showVersion)
+import Paths_intake (version)
+import System.Console.CmdArgs.Implicit
 import Test.HUnit (assertBool, assertEqual)
 import Test.Framework (defaultMain, Test)
 import Test.Framework.Providers.HUnit (testCase)
@@ -9,21 +13,90 @@ import Intake.Core
 import Intake.Process (backend)
 
 main :: IO ()
-main = do
-  as <- getArgs
-  case as of
-    ("run" : name : rest) -> do
-      WorkflowId i <- run backend (WorkflowName name) rest
-      putStrLn $ take 12 i ++ "  " ++ i
-    ["status", i] -> do
-      e <- inspect backend (WorkflowIdPrefix i)
-      putStrLn $ show $ status e
-    -- "show" to improve coverage
-    ["show", i] -> do
+main = (runCmd =<<) . cmdArgs $ modes
+  [ cmdRun
+  , cmdStatus
+  , cmdShow
+  , cmdTests &= auto
+  ]
+  &= summary versionString
+  &= program "intake"
+
+-- | String with the program name, version and copyright.
+versionString :: String
+versionString =
+  "Intake " ++ showVersion version ++ " - Copyright (c) 2013 Vo Minh Thu."
+
+-- | Data type representing the different command-line subcommands.
+data Cmd =
+    CmdRun
+    { cmdWorkflowName :: String
+    , cmdArguments :: [String]
+    }
+  | CmdStatus
+    { cmdWorkflowIdPrefix :: String
+    }
+  | CmdShow
+    { cmdMaybeWorkflowIdPrefix :: Maybe String
+    }
+  | CmdTests
+  deriving (Data, Typeable)
+
+-- | Create a 'Run' command.
+cmdRun :: Cmd
+cmdRun = CmdRun
+  { cmdWorkflowName = def
+    &= argPos 0
+    &= typ "WORKFLOW"
+  , cmdArguments = def
+    &= args
+    &= typ "ARGS"
+  } &= help "Run a workflow with the provided arguments."
+    &= explicit
+    &= name "run"
+
+-- | Create a 'Status' command.
+cmdStatus :: Cmd
+cmdStatus = CmdStatus
+  { cmdWorkflowIdPrefix = def
+    &= argPos 0
+    &= typ "ID"
+  } &= help "Report the current status of a workflow instance."
+    &= explicit
+    &= name "status"
+
+-- | Create a 'Show' command, used to improve code coverage. TODO remove it.
+cmdShow :: Cmd
+cmdShow = CmdShow
+  { cmdMaybeWorkflowIdPrefix = def
+    &= args
+    &= typ "ID"
+  } &= help "Show some data structure to improve code coverage."
+    &= explicit
+    &= name "show"
+
+-- | Create a 'Tests' command. TODO remove it.
+cmdTests :: Cmd
+cmdTests = CmdTests
+    &= help "Run the test suite."
+    &= explicit
+    &= name "tests"
+
+runCmd :: Cmd -> IO ()
+runCmd CmdRun{..} = do
+  WorkflowId i <- run backend (WorkflowName cmdWorkflowName) cmdArguments
+  putStrLn $ take 12 i ++ "  " ++ i
+
+runCmd CmdStatus{..} = do
+  e <- inspect backend (WorkflowIdPrefix cmdWorkflowIdPrefix)
+  putStrLn $ show $ status e
+
+runCmd CmdShow{..} = do
+  case cmdMaybeWorkflowIdPrefix of
+    Just i -> do
       e <- inspect backend (WorkflowIdPrefix i)
       print e -- To cover the (read arguments) in loadEnvironment'
-    -- "show" to improve coverage
-    ["show"] -> do
+    Nothing -> do
       print echoA
       print echoAB
       print echoAB'
@@ -34,8 +107,8 @@ main = do
           jstatus = read "[Waiting, Ready, Started, Completed]"
       print $ filter (/= Ready) jstatus
       print $ filter (/= WInstanciated) [WStarted [], WCompleted]
-    [] -> do
-      defaultMain tests
+
+runCmd CmdTests{..} = defaultMain tests
 
 ----------------------------------------------------------------------
 -- Tests

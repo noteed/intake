@@ -16,7 +16,7 @@ import System.IO (withFile, IOMode(WriteMode))
 import System.Process
 import System.Process.Internals (ProcessHandle(..), ProcessHandle__(..))
 
-import Intake.Core hiding (advance, inspect, instanciate, load)
+import Intake.Core hiding (advance, inspect, instanciate)
 
 backend :: Backend
 backend = Backend instanciate inspect advance
@@ -57,14 +57,14 @@ start e r = do
 
   (_, _, _, h) <-
     -- TODO close stdin.
-    withFile (dir </> "stderr") WriteMode $ \e ->
-    withFile (dir </> "stdout") WriteMode $ \o ->
+    withFile (dir </> "stderr") WriteMode $ \err ->
+    withFile (dir </> "stdout") WriteMode $ \out ->
     createProcess (proc cmd args)
-      { std_out = UseHandle o, std_err = UseHandle e }
+      { std_out = UseHandle out, std_err = UseHandle err }
   mi <- processHandleToInt h
   case mi of
     Right i -> writeFile (dir </> "pid") $ show i
-    Left ExitSuccess -> writeFile (dir </> "exitcode") $ show 0
+    Left ExitSuccess -> writeFile (dir </> "exitcode") "0"
     Left (ExitFailure c) -> writeFile (dir </> "exitcode") $ show c
 
 loadWorkflow :: WorkflowName -> WorkflowId -> [String] -> IO WorkflowEnv

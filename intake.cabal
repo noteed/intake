@@ -25,6 +25,7 @@ executable intake
   hs-source-dirs:      bin
   main-is:             intake.hs
   build-depends:       base == 4.*,
+                       cmdargs == 0.9.*,
                        HUnit == 1.2.*,
                        intake,
                        test-framework == 0.8.*,

@@ -2,9 +2,6 @@
 {-# LANGUAGE TupleSections #-}
 module Intake.Core where
 
-import Control.Applicative ((<$>))
-import qualified Control.Monad.Random as R
-
 ----------------------------------------------------------------------
 -- Types
 -- The trivial instances are there because the coverage reporting
@@ -223,6 +220,7 @@ status' s = case s of
 setStatus :: Int -> JStatus -> WorkflowEnv -> WorkflowEnv
 setStatus l s e = e { envState = setStatus' l s (envState e) }
 
+setStatus' :: Int -> JStatus -> WorkflowState -> WorkflowState
 setStatus' l st s = case s of
   SJob l' cmd args st' | l == l' -> SJob l' cmd args st
                        | otherwise -> SJob l' cmd args st'
@@ -230,6 +228,8 @@ setStatus' l st s = case s of
   SParallel a b -> setStatus' l st a `SParallel` setStatus' l st b
   SRetry m n a -> SRetry m n $ setStatus' l st a
 
+complete :: Int -> WorkflowEnv -> WorkflowEnv
 complete l e = e { envState = fst $ makeReady False $ complete' l $ envState e }
 
+complete' :: Int -> WorkflowState -> WorkflowState
 complete' l = setStatus' l Completed
