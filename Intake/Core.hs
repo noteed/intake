@@ -98,11 +98,23 @@ data WStatus = WInstanciated | WStarted [Int] | WCompleted
   deriving (Eq, Show)
 
 data Backend = Backend
-  { run :: WorkflowName -> [String] -> IO WorkflowId
-  -- ^ Instanciate and start a workflow with the given arguments.
+  { instanciate :: WorkflowName -> [String] -> IO WorkflowId
+  -- ^ Instanciate a workflow with the given arguments.
   , inspect :: WorkflowIdPrefix -> IO WorkflowEnv
   -- ^ Return a complete representation of a workflow instance.
+  , advance :: WorkflowId -> IO ()
+  -- ^ Advance the workflow.
   }
+
+----------------------------------------------------------------------
+-- IO
+----------------------------------------------------------------------
+
+run :: Backend -> WorkflowName -> [String] -> IO WorkflowId
+run backend name arguments = do
+  i <- instanciate backend name arguments
+  advance backend i
+  return i
 
 ----------------------------------------------------------------------
 -- Pure

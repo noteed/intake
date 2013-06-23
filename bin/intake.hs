@@ -12,9 +12,9 @@ main :: IO ()
 main = do
   as <- getArgs
   case as of
-    ["run", name] -> do
-      WorkflowId i <- run backend (WorkflowName name) []
-      putStrLn i
+    ("run" : name : rest) -> do
+      WorkflowId i <- run backend (WorkflowName name) rest
+      putStrLn $ take 12 i ++ "  " ++ i
     ["status", i] -> do
       e <- inspect backend (WorkflowIdPrefix i)
       putStrLn $ show $ status e
@@ -133,3 +133,6 @@ wrap' = WorkflowEnv (WorkflowName "test") (WorkflowId "_") []
 -- > intake send benchmark c40bb15c4280
 -- > intake status c40bb15c4280
 -- Success (5 jobs, 4 successes, 1 failure).
+
+-- TODO `run -c command` arguments: execute a workflow with a single job
+-- made of the command without first needing to `define` it.

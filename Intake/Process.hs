@@ -12,25 +12,31 @@ import System.Directory
   , getHomeDirectory)
 import System.Exit (ExitCode(..))
 import System.FilePath ((</>))
+import System.IO (withFile, IOMode(WriteMode))
 import System.Process
 import System.Process.Internals (ProcessHandle(..), ProcessHandle__(..))
 
-import Intake.Core hiding (inspect, run)
+import Intake.Core hiding (advance, inspect, instanciate, load)
 
 backend :: Backend
-backend = Backend run inspect
+backend = Backend instanciate inspect advance
 
--- | Implement `Intake.Core.run`.
-run :: WorkflowName -> [String] -> IO WorkflowId
-run name@(WorkflowName n) arguments = do
+-- | Implement `Intake.Core.instanciate`.
+instanciate :: WorkflowName -> [String] -> IO WorkflowId
+instanciate name@(WorkflowName n) arguments = do
   i@(WorkflowId i') <- newWorkflowId
-  putStrLn $ take 12 i' ++ "  Loading workflow `" ++ n ++ "` with arguments "
+  putStrLn $ take 12 i' ++ "  Instanciating workflow `" ++ n ++ "` with arguments "
     ++ show arguments ++ "."
   e <- loadWorkflow name i arguments
-  let (e', rs) = step e
-  mapM_ (start e) rs
-  saveEnvironment e'
+  saveEnvironment e
   return i
+
+-- | Implement `Intake.Core.advance`.
+advance :: WorkflowId -> IO ()
+advance i = do
+  e <- loadEnvironment i
+  let (e', rs) = step e
+  mapM_ (start e') rs
 
 newWorkflowId :: IO WorkflowId
 newWorkflowId = WorkflowId <$>
@@ -46,21 +52,33 @@ start e r = do
   putStrLn $ take 12 i' ++ "  Starting `" ++ cmd
     ++ "` with arguments " ++ show args ++ "."
   createDirectoryIfMissing True dir
-  writeFile (dir </> "cmdline") $ cmd ++ show args
+  writeFile (dir </> "cmdline") $ cmd ++ " " ++ show args
   writeFile (dir </> "state") "Started"
-  writeFile (dir </> "stderr") ""
-  writeFile (dir </> "stdout") ""
+
+  (_, _, _, h) <-
+    -- TODO close stdin.
+    withFile (dir </> "stderr") WriteMode $ \e ->
+    withFile (dir </> "stdout") WriteMode $ \o ->
+    createProcess (proc cmd args)
+      { std_out = UseHandle o, std_err = UseHandle e }
+  mi <- processHandleToInt h
+  case mi of
+    Right i -> writeFile (dir </> "pid") $ show i
+    Left ExitSuccess -> writeFile (dir </> "exitcode") $ show 0
+    Left (ExitFailure c) -> writeFile (dir </> "exitcode") $ show c
 
 loadWorkflow :: WorkflowName -> WorkflowId -> [String] -> IO WorkflowEnv
 loadWorkflow name i arguments = do
-  w <- readWorkflow name
+  w <- readWorkflow name arguments
   let s = initializeWorkflow w
   return $ WorkflowEnv name i arguments s
 
-readWorkflow :: WorkflowName -> IO Workflow
-readWorkflow (WorkflowName name) = return $ case name of
+-- TODO return a Maybe.
+readWorkflow :: WorkflowName -> [String] -> IO Workflow
+readWorkflow (WorkflowName name) arguments = return $ case name of
   "a" -> Job "echo" ["a"]
   "ab" -> Job "echo" ["a"] `Sequence` Job "echo" ["b"]
+  "ping" -> Job "ping" arguments
   _ -> error "No such workflow."
 --  (Job "echo" ["a"] `Sequence` Job "echo" ["b"])
 --    `Parallel` Job "echo" ["c"]
@@ -101,3 +119,11 @@ loadEnvironment i@(WorkflowId i') = do
   dirs <- filterM (doesDirectoryExist . (dir </>)) content
   states <- mapM (readFile . (\d -> dir </> d </> "state")) dirs
   return $ foldl' (\x (l, s) -> setStatus (read l) (read s) x) e $ zip dirs states
+
+-- | Convenience function to turn a ProcessHandle into an Int.
+processHandleToInt :: ProcessHandle -> IO (Either ExitCode Int)
+processHandleToInt (ProcessHandle mvar) = do
+  h <- readMVar mvar
+  case h of
+    OpenHandle i -> return . Right $ fromIntegral i
+    ClosedHandle c -> return $ Left c

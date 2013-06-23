@@ -4,7 +4,7 @@ cabal clean && cabal configure --enable-library-coverage && cabal build || exit 
 ./dist/build/intake/intake || exit 1
 ./dist/build/intake/intake show
 ./dist/build/intake/intake run a > RUN-A
-ID=`tail -n1 RUN-A`
+ID=`tail -n1 RUN-A | cut -f 3 -d ' '`
 rm RUN-A
 echo $ID
 ./dist/build/intake/intake show $ID
@@ -19,11 +19,11 @@ mkdir ~/.intake/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbb
 rm -r ~/.intake/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 rm -r ~/.intake/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbb
 ./dist/build/intake/intake run ab > RUN-AB
-ID=`tail -n1 RUN-AB`
+ID=`tail -n1 RUN-AB | cut -f 3 -d ' '`
 rm RUN-AB
 echo $ID
-./dist/build/intake/intake run xxx # no such workflow
 rm -r ~/.intake/$ID
+./dist/build/intake/intake run xxx # no such workflow
 rm -r coverage
 mkdir -p coverage
 hpc markup intake --hpcdir dist/hpc/mix/intake-0.0.0 --destdir coverage
