@@ -6,20 +6,21 @@ import Test.Framework (defaultMain, Test)
 import Test.Framework.Providers.HUnit (testCase)
 
 import Intake.Core
+import Intake.Process (backend)
 
 main :: IO ()
 main = do
   as <- getArgs
   case as of
     ["run", name] -> do
-      WorkflowId i' <- run (WorkflowName name) []
-      putStrLn i'
-    ["status", i'] -> do
-      e <- loadEnvironment (WorkflowIdPrefix i')
+      WorkflowId i <- run backend (WorkflowName name) []
+      putStrLn i
+    ["status", i] -> do
+      e <- inspect backend (WorkflowIdPrefix i)
       putStrLn $ show $ status e
     -- "show" to improve coverage
-    ["show", i'] -> do
-      e <- loadEnvironment (WorkflowIdPrefix i')
+    ["show", i] -> do
+      e <- inspect backend (WorkflowIdPrefix i)
       print e -- To cover the (read arguments) in loadEnvironment'
     -- "show" to improve coverage
     ["show"] -> do
