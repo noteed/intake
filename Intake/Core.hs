@@ -95,11 +95,11 @@ data WStatus = WInstanciated | WStarted [Int] | WCompleted
   deriving (Eq, Show)
 
 data Backend = Backend
-  { instanciate :: (Either String WorkflowName) -> [String] -> IO WorkflowId
+  { instanciate :: (Either String WorkflowName) -> [String] -> IO WorkflowEnv
   -- ^ Instanciate a workflow with the given arguments.
   , inspect :: WorkflowIdPrefix -> IO WorkflowEnv
   -- ^ Return a complete representation of a workflow instance.
-  , advance :: WorkflowId -> IO ()
+  , advance :: WorkflowEnv -> IO ()
   -- ^ Advance the workflow.
   , logs :: WorkflowIdPrefix -> IO String
   -- ^ Return the logs (stdout only) of a workflow instance.
@@ -111,9 +111,9 @@ data Backend = Backend
 
 run :: Backend -> (Either String WorkflowName) -> [String] -> IO WorkflowId
 run backend name arguments = do
-  i <- instanciate backend name arguments
-  advance backend i
-  return i
+  e <- instanciate backend name arguments
+  advance backend e
+  return $ envId e
 
 ----------------------------------------------------------------------
 -- Pure
@@ -189,6 +189,7 @@ extract e r = extract' (envState e) r
 extract' :: WorkflowState -> Run -> Maybe (String, [String])
 extract' s (Run l) = case s of
   SJob l' cmd args _ | l' == l -> Just (cmd, args)
+  SJob _ _ _ _ -> Nothing
   SSequence a b -> case extract' a (Run l) of
     Nothing -> extract' b (Run l)
     found -> found

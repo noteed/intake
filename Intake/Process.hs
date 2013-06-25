@@ -1,5 +1,6 @@
 {-# LANGUAGE TupleSections #-}
--- | Implement the Intake workflow with System.Process.
+-- | Implement the Intake workflow with System.Process. The environment is
+-- saved to/loaded from the file system.
 module Intake.Process where
 
 import Control.Applicative ((<$>))
@@ -10,7 +11,7 @@ import Data.List (foldl', isPrefixOf)
 import System.Directory
   ( createDirectoryIfMissing, doesDirectoryExist, doesFileExist
   , getDirectoryContents, getHomeDirectory)
-import System.Exit (ExitCode(..))
+import System.Exit (exitWith, ExitCode(..))
 import System.FilePath ((</>))
 import System.IO (withFile, IOMode(WriteMode))
 import System.Process
@@ -21,8 +22,9 @@ import Intake.Core hiding (advance, inspect, instanciate, logs)
 backend :: Backend
 backend = Backend instanciate inspect advance logs
 
--- | Implement `Intake.Core.instanciate`.
-instanciate :: (Either String WorkflowName) -> [String] -> IO WorkflowId
+-- | Implement `Intake.Core.instanciate` by loading a worflow from the file
+-- system.
+instanciate :: (Either String WorkflowName) -> [String] -> IO WorkflowEnv
 instanciate name arguments = do
   i@(WorkflowId i') <- newWorkflowId
   e <- case name of
@@ -34,21 +36,20 @@ instanciate name arguments = do
       putStrLn $ take 12 i' ++ "  Instanciating workflow `" ++ n ++
         "` with arguments " ++ show arguments ++ "."
       loadWorkflow (WorkflowName n) i arguments
-  saveEnvironment e
-  return i
+  return e
 
 -- | Implement `Intake.Core.advance`.
-advance :: WorkflowId -> IO ()
-advance i = do
-  e <- loadEnvironment i
+advance :: WorkflowEnv -> IO ()
+advance e = do
   let (e', rs) = step e
-  mapM_ (start e') rs
+  saveEnvironment e'
+  mapM_(start e') rs
 
 newWorkflowId :: IO WorkflowId
 newWorkflowId = WorkflowId <$>
   (sequence $ replicate 64 $ R.fromList $ map (,1) $ ['a'..'f'] ++ ['0'..'9'])
 
-start :: WorkflowEnv -> Run -> IO ()
+start :: WorkflowEnv -> Run -> IO ProcessHandle
 start e r = do
   home <- getHomeDirectory
   let (cmd, args) = maybe (error "No such job ID.") id $ extract e r
@@ -61,17 +62,35 @@ start e r = do
   writeFile (dir </> "cmdline") $ cmd ++ " " ++ show args
   writeFile (dir </> "state") "Started"
 
+  (_, _, _, h) <- createProcess $ proc "intake" $
+    -- The -- is not documented in cmdargs but but makes sure that any flag
+    -- present in args will be left untouched by it.
+    ["work", "--", i', show l, cmd] ++ args
+  mi <- processHandleToInt h
+  case mi of
+    Right i -> writeFile (dir </> "pid") $ show i
+    Left ExitSuccess -> writeFile (dir </> "exitcode") "0"
+    Left (ExitFailure c) -> writeFile (dir </> "exitcode") $ show c
+  return h
+
+-- | Wrap a command so that its "state" file is changed to "Completed" upon
+-- completion of the process.
+work :: WorkflowId -> Int -> String -> [String] -> IO ()
+work (WorkflowId i') l cmd args = do
+  home <- getHomeDirectory
+  let dir = home </> ".intake" </> i' </> show l
   (_, _, _, h) <-
     -- TODO close stdin.
     withFile (dir </> "stderr") WriteMode $ \err ->
     withFile (dir </> "stdout") WriteMode $ \out ->
     createProcess (proc cmd args)
       { std_out = UseHandle out, std_err = UseHandle err }
-  mi <- processHandleToInt h
-  case mi of
-    Right i -> writeFile (dir </> "pid") $ show i
-    Left ExitSuccess -> writeFile (dir </> "exitcode") "0"
-    Left (ExitFailure c) -> writeFile (dir </> "exitcode") $ show c
+  code <- waitForProcess h
+  case code of
+    ExitSuccess -> writeFile (dir </> "exitcode") "0"
+    ExitFailure c -> writeFile (dir </> "exitcode") $ show c
+  writeFile (dir </> "state") "Completed"
+  exitWith code
 
 makeWorkflow :: String -> WorkflowId -> [String] -> IO WorkflowEnv
 makeWorkflow cmd i arguments = do

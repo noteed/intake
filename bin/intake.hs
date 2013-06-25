@@ -10,13 +10,15 @@ import Test.Framework (defaultMain, Test)
 import Test.Framework.Providers.HUnit (testCase)
 
 import Intake.Core
-import Intake.Process (backend)
+import qualified Intake.Engine as Engine
+import Intake.Process (backend, work)
 
 main :: IO ()
 main = (runCmd =<<) . cmdArgs $ modes
   [ cmdRun
   , cmdStatus
   , cmdLogs
+  , cmdWork
   , cmdShow
   , cmdTests &= auto
   ]
@@ -34,12 +36,19 @@ data Cmd =
     { cmdWorkflowName :: String
     , cmdArguments :: [String]
     , cmdCommand :: Bool
+    , cmdDetach :: Bool
     }
   | CmdStatus
     { cmdWorkflowIdPrefix :: String
     }
   | CmdLogs
     { cmdWorkflowIdPrefix :: String
+    }
+  | CmdWork
+    { cmdWorkflowId :: String
+    , cmdJobId :: Int
+    , cmdCommandName :: String
+    , cmdArguments :: [String]
     }
   | CmdShow
     { cmdMaybeWorkflowIdPrefix :: Maybe String
@@ -62,6 +71,10 @@ cmdRun = CmdRun
     &= help "When this flag is given, accepts a command instead of a workflow\
       \ name. A workflow with the command as its sole job is then\
       \ instanciated and run."
+  , cmdDetach = def
+    &= explicit
+    &= name "d"
+    &= help "Run the workflow in background."
   } &= help "Run a workflow with the provided arguments."
     &= explicit
     &= name "run"
@@ -87,6 +100,25 @@ cmdLogs = CmdLogs
     &= explicit
     &= name "logs"
 
+-- | Create a 'Work' command. Used by the `Intake.Process` backend.
+cmdWork :: Cmd
+cmdWork = CmdWork
+  { cmdWorkflowId = def
+    &= argPos 0
+    &= typ "ID"
+  , cmdJobId = def
+    &= argPos 1
+    &= typ "ID"
+  , cmdCommandName = def
+    &= argPos 2
+    &= typ "CMD"
+  , cmdArguments = def
+    &= args
+    &= typ "ARGS"
+  } &= help "Run a job. This is used by `intake` internally."
+    &= explicit
+    &= name "work"
+
 -- | Create a 'Show' command, used to improve code coverage. TODO remove it.
 cmdShow :: Cmd
 cmdShow = CmdShow
@@ -105,15 +137,13 @@ cmdTests = CmdTests
     &= name "tests"
 
 runCmd :: Cmd -> IO ()
-runCmd CmdRun{..} =
-  if cmdCommand
-  then do
-    WorkflowId i <- run backend (Left cmdWorkflowName) cmdArguments
-    putStrLn $ take 12 i ++ "  " ++ i
-  else do
-    WorkflowId i <-
-      run backend (Right $ WorkflowName cmdWorkflowName) cmdArguments
-    putStrLn $ take 12 i ++ "  " ++ i
+runCmd CmdRun{..} = do
+  let n = (if cmdCommand then Left else Right . WorkflowName) cmdWorkflowName
+  if cmdDetach
+    then do
+      WorkflowId i <- run backend n cmdArguments
+      putStrLn $ take 12 i ++ "  " ++ i
+    else Engine.run n cmdArguments
 
 runCmd CmdStatus{..} = do
   e <- inspect backend (WorkflowIdPrefix cmdWorkflowIdPrefix)
@@ -122,6 +152,9 @@ runCmd CmdStatus{..} = do
 runCmd CmdLogs{..} = do
   ls <- logs backend (WorkflowIdPrefix cmdWorkflowIdPrefix)
   putStr ls
+
+runCmd CmdWork{..} = do
+  work (WorkflowId cmdWorkflowId) cmdJobId cmdCommandName cmdArguments
 
 runCmd CmdShow{..} = do
   case cmdMaybeWorkflowIdPrefix of
