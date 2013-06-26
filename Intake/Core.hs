@@ -15,6 +15,7 @@ instance Show WorkflowIdPrefix where
 
 -- | Some random string to identify a workflow instance.
 newtype WorkflowId = WorkflowId String
+  deriving Ord
 
 instance Show WorkflowId where
   show (WorkflowId s) = s

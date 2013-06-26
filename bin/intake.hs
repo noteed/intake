@@ -2,6 +2,9 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
+import Control.Concurrent (forkIO)
+import Control.Concurrent.Chan (newChan)
+import qualified Data.Map as M
 import Data.Version (showVersion)
 import Paths_intake (version)
 import System.Console.CmdArgs.Implicit
@@ -11,6 +14,7 @@ import Test.Framework.Providers.HUnit (testCase)
 
 import Intake.Core
 import qualified Intake.Engine as Engine
+import Intake.Http (serve)
 import Intake.Process (backend, work)
 
 main :: IO ()
@@ -19,6 +23,7 @@ main = (runCmd =<<) . cmdArgs $ modes
   , cmdStatus
   , cmdLogs
   , cmdWork
+  , cmdServe
   , cmdShow
   , cmdTests &= auto
   ]
@@ -50,6 +55,7 @@ data Cmd =
     , cmdCommandName :: String
     , cmdArguments :: [String]
     }
+  | CmdServe
   | CmdShow
     { cmdMaybeWorkflowIdPrefix :: Maybe String
     }
@@ -74,7 +80,7 @@ cmdRun = CmdRun
   , cmdDetach = def
     &= explicit
     &= name "d"
-    &= help "Run the workflow in background."
+    &= help "Run directly the workflow without using an Intake server."
   } &= help "Run a workflow with the provided arguments."
     &= explicit
     &= name "run"
@@ -119,6 +125,13 @@ cmdWork = CmdWork
     &= explicit
     &= name "work"
 
+-- | Create a 'Serve' command.
+cmdServe :: Cmd
+cmdServe = CmdServe
+    &= help "Start the Intake server."
+    &= explicit
+    &= name "serve"
+
 -- | Create a 'Show' command, used to improve code coverage. TODO remove it.
 cmdShow :: Cmd
 cmdShow = CmdShow
@@ -140,10 +153,10 @@ runCmd :: Cmd -> IO ()
 runCmd CmdRun{..} = do
   let n = (if cmdCommand then Left else Right . WorkflowName) cmdWorkflowName
   if cmdDetach
-    then do
+    then Engine.run n cmdArguments
+    else do
       WorkflowId i <- run backend n cmdArguments
       putStrLn $ take 12 i ++ "  " ++ i
-    else Engine.run n cmdArguments
 
 runCmd CmdStatus{..} = do
   e <- inspect backend (WorkflowIdPrefix cmdWorkflowIdPrefix)
@@ -155,6 +168,11 @@ runCmd CmdLogs{..} = do
 
 runCmd CmdWork{..} = do
   work (WorkflowId cmdWorkflowId) cmdJobId cmdCommandName cmdArguments
+
+runCmd CmdServe{..} = do
+  chan <- newChan
+  _ <- forkIO $ Engine.loop chan M.empty False
+  serve chan
 
 runCmd CmdShow{..} = do
   case cmdMaybeWorkflowIdPrefix of
