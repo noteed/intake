@@ -8,7 +8,7 @@ import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as LB
 import Network.JSONClient (apiGet, apiPost)
 
-import Intake.Core (WorkflowId(..), WorkflowName(..))
+import Intake.Core (WorkflowId(..), WorkflowIdPrefix(..), WorkflowName(..), WStatus(..))
 
 -- | Execute a GET agains the specified URI (e.g. `/workflow`) using the
 -- supplied parameters.
@@ -36,3 +36,9 @@ instanciate n =
     Left command -> do -- TODO it is not yet implemented on the server.
       m <- post ("/commands/" `B.append` B.pack command) [] ""
       return $ maybe (error "POST /commands") id m
+
+-- | Return the status of a workflow instance.
+status :: WorkflowIdPrefix -> IO WStatus
+status (WorkflowIdPrefix i) = do
+  m <- get ("/instances/" `B.append` B.pack i `B.append` "/status") []
+  return $ maybe (error "GET /instances") id m

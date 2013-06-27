@@ -43,7 +43,6 @@ data Cmd =
     { cmdWorkflowName :: String
     , cmdArguments :: [String]
     , cmdCommand :: Bool
-    , cmdDetach :: Bool
     }
   | CmdStatus
     { cmdWorkflowIdPrefix :: String
@@ -80,10 +79,6 @@ cmdRun = CmdRun
     &= help "When this flag is given, accepts a command instead of a workflow\
       \ name. A workflow with the command as its sole job is then\
       \ instanciated and run."
-  , cmdDetach = def
-    &= explicit
-    &= name "d"
-    &= help "Run directly the workflow without using an Intake server."
   } &= help "Run a workflow with the provided arguments."
     &= explicit
     &= name "run"
@@ -162,15 +157,11 @@ cmdTests = CmdTests
 runCmd :: Cmd -> IO ()
 runCmd CmdRun{..} = do
   let n = (if cmdCommand then Left else Right . WorkflowName) cmdWorkflowName
-  if cmdDetach
-    then Engine.run n cmdArguments
-    else do
-      WorkflowId i <- Client.instanciate n
-      putStrLn $ take 12 i ++ "  " ++ i
+  WorkflowId i <- Client.instanciate n
+  putStrLn $ take 12 i ++ "  " ++ i
 
 runCmd CmdStatus{..} = do
-  e <- inspect backend (WorkflowIdPrefix cmdWorkflowIdPrefix)
-  putStrLn $ show $ status e
+  Client.status (WorkflowIdPrefix cmdWorkflowIdPrefix) >>= print
 
 runCmd CmdLogs{..} = do
   ls <- logs backend (WorkflowIdPrefix cmdWorkflowIdPrefix)

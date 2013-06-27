@@ -35,8 +35,9 @@ import Snap.Core (MonadSnap, Request, getHeaders, getParam, getRequest,
 import Snap.Http.Server (httpServe)
 import qualified Snap.Http.Server.Config as Conf
 
-import Intake.Core (WorkflowId(..), WorkflowName(..))
+import Intake.Core (inspect, status, WorkflowId(..), WorkflowIdPrefix(..), WorkflowName(..))
 import Intake.Engine (Command(..))
+import Intake.Process (backend)
 
 serve :: Chan Command -> IO ()
 serve chan = httpServe conf $ handler chan
@@ -52,6 +53,7 @@ handler chan = do
     , ("workflows", method GET (format "application/json" getWorkflowsJSON))
     , ("workflows/:name", method POST (format "text/plain" $ instanciate chan))
     , ("workflows/:name", method POST (format "application/json" $ instanciateJSON chan))
+    , ("instances/:id/status", method GET (format "application/json" statusJSON))
     ]
 
 getWorkflows :: MonadSnap m => m ()
@@ -69,13 +71,6 @@ instanciate chan = do
       writeBS . S8.pack $ i ++ "\n"
     _ -> pass
 
-instanciate' :: Chan Command -> S8.ByteString -> IO WorkflowId
-instanciate' chan name = do
-  mvar <- newEmptyMVar
-  writeChan chan $
-    Instanciate (Right . WorkflowName $ S8.unpack name) [] (Just mvar)
-  readMVar mvar
-
 instanciateJSON :: MonadSnap m => Chan Command -> m ()
 instanciateJSON chan = do
   mname <- getParam "name"
@@ -83,6 +78,22 @@ instanciateJSON chan = do
     Just name -> do
       i <- liftIO $ instanciate' chan name
       writeLBS $ encode i
+    _ -> pass
+
+instanciate' :: Chan Command -> S8.ByteString -> IO WorkflowId
+instanciate' chan name = do
+  mvar <- newEmptyMVar
+  writeChan chan $
+    Instanciate (Right . WorkflowName $ S8.unpack name) [] mvar
+  readMVar mvar
+
+statusJSON :: MonadSnap m => m ()
+statusJSON = do
+  mid <- getParam "id"
+  case mid of
+    Just i -> do
+      e <- liftIO $ inspect backend (WorkflowIdPrefix $ S8.unpack i)
+      writeLBS . encode $ status e
     _ -> pass
 
 ----------------------------------------------------------------------

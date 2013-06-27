@@ -120,6 +120,28 @@ instance Eq Run where
 data WStatus = WInstanciated | WStarted [Int] | WCompleted
   deriving (Eq, Show)
 
+instance FromJSON WStatus where
+  parseJSON (Object v) = do
+    s <- v .: "status"
+    case s :: String of
+      "Instanciated" -> return WInstanciated
+      "Started" -> WStarted <$> v .: "jobs"
+      "Completed" -> return WCompleted
+      _ -> mzero
+  parseJSON _ = mzero
+
+instance ToJSON WStatus where
+  toJSON WInstanciated = object
+    [ "status" .= ("Instanciated" :: String)
+    ]
+  toJSON (WStarted rs) = object
+    [ "status" .= ("Started" :: String)
+    , "jobs" .= rs
+    ]
+  toJSON WCompleted = object
+    [ "status" .= ("Completed" :: String)
+    ]
+
 data Backend = Backend
   { instanciate :: (Either String WorkflowName) -> [String] -> IO WorkflowEnv
   -- ^ Instanciate a workflow with the given arguments.
@@ -130,20 +152,6 @@ data Backend = Backend
   , logs :: WorkflowIdPrefix -> IO String
   -- ^ Return the logs (stdout only) of a workflow instance.
   }
-
-----------------------------------------------------------------------
--- IO
-----------------------------------------------------------------------
-
-run :: Backend -> (Either String WorkflowName) -> [String] -> IO WorkflowId
-run backend name arguments = do
-  e <- instanciate backend name arguments
-  advance backend e
-  return $ envId e
-
-----------------------------------------------------------------------
--- Pure
-----------------------------------------------------------------------
 
 initializeWorkflow :: Workflow -> WorkflowState
 initializeWorkflow = fst . makeReady False . fst . labelWorkflow 0

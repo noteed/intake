@@ -3,12 +3,12 @@ module Intake.Engine where
 import Data.Map (Map)
 import qualified Data.Map as M
 import Control.Concurrent (forkIO)
-import Control.Concurrent.Chan (newChan, readChan, writeChan, Chan)
+import Control.Concurrent.Chan (readChan, writeChan, Chan)
 import Control.Concurrent.MVar (putMVar, MVar)
 import Control.Monad (unless, when)
 import System.Process (waitForProcess)
 
-import Intake.Core hiding (advance, instanciate, run)
+import Intake.Core hiding (advance, instanciate)
 import Intake.Process (instanciate, loadEnvironment, saveEnvironment, start)
 
 type Envs = Map WorkflowId WorkflowEnv
@@ -16,7 +16,7 @@ type Envs = Map WorkflowId WorkflowEnv
 data Command =
     Quit
     -- ^ Stop the main loop.
-  | Instanciate (Either String WorkflowName) [String] (Maybe (MVar WorkflowId))
+  | Instanciate (Either String WorkflowName) [String] (MVar WorkflowId)
     -- ^ Instanciate a workflow. The MVar is used to return the WorkflowId.
   | Start WorkflowId Run
     -- ^ Start a job for a given workflow.
@@ -24,12 +24,6 @@ data Command =
     -- ^ Notify the engine that a job was completed.
   | Free WorkflowId
     -- ^ Notify the engine that a workflow was completed.
-
-run :: (Either String WorkflowName) -> [String] -> IO ()
-run name args = do
-  chan <- newChan
-  writeChan chan $ Instanciate name args Nothing
-  loop chan M.empty True
 
 loop :: Chan Command -> Envs -> Bool -> IO ()
 loop chan envs once = do
@@ -43,7 +37,7 @@ loop chan envs once = do
     Instanciate name args mvar -> do
       e <- instanciate name args
       saveEnvironment e
-      maybe (return ()) (flip putMVar $ envId e) mvar
+      putMVar mvar $ envId e
       advance e
       continue (M.insert (envId e) e envs)
     Start i r -> do
