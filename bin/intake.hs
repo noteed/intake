@@ -12,6 +12,7 @@ import Test.HUnit (assertBool, assertEqual)
 import Test.Framework (defaultMain, Test)
 import Test.Framework.Providers.HUnit (testCase)
 
+import qualified Intake.Client as Client
 import Intake.Core
 import qualified Intake.Engine as Engine
 import Intake.Http (serve)
@@ -24,6 +25,7 @@ main = (runCmd =<<) . cmdArgs $ modes
   , cmdLogs
   , cmdWork
   , cmdServe
+  , cmdWorkflows
   , cmdShow
   , cmdTests &= auto
   ]
@@ -56,6 +58,7 @@ data Cmd =
     , cmdArguments :: [String]
     }
   | CmdServe
+  | CmdWorkflows
   | CmdShow
     { cmdMaybeWorkflowIdPrefix :: Maybe String
     }
@@ -132,6 +135,13 @@ cmdServe = CmdServe
     &= explicit
     &= name "serve"
 
+-- | Create a 'Workflows' command.
+cmdWorkflows :: Cmd
+cmdWorkflows = CmdWorkflows
+    &= help "List available workflow definitions."
+    &= explicit
+    &= name "workflows"
+
 -- | Create a 'Show' command, used to improve code coverage. TODO remove it.
 cmdShow :: Cmd
 cmdShow = CmdShow
@@ -155,7 +165,7 @@ runCmd CmdRun{..} = do
   if cmdDetach
     then Engine.run n cmdArguments
     else do
-      WorkflowId i <- run backend n cmdArguments
+      WorkflowId i <- Client.instanciate n
       putStrLn $ take 12 i ++ "  " ++ i
 
 runCmd CmdStatus{..} = do
@@ -173,6 +183,9 @@ runCmd CmdServe{..} = do
   chan <- newChan
   _ <- forkIO $ Engine.loop chan M.empty False
   serve chan
+
+runCmd CmdWorkflows{..} = do
+  Client.workflows >>= print
 
 runCmd CmdShow{..} = do
   case cmdMaybeWorkflowIdPrefix of

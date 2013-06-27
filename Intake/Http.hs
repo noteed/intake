@@ -13,14 +13,16 @@
 --
 -- Example client:
 --   > curl -H "Accept: text/plain" http://127.0.0.1:7001/workflows
---   > curl http://127.0.0.1:7001/workflow/sleep2 -d ''
+--   > curl -H "Accept: application/json" http://127.0.0.1:7001/workflows
+--   > curl -H "Accept: text/plain" http://127.0.0.1:7001/workflows/sleep2 -d ''
+--   > curl -H "Accept: application/json" http://127.0.0.1:7001/workflows/sleep2 -d ''
 module Intake.Http where
 
 import Control.Applicative ((<$>))
 import Control.Concurrent.Chan
 import Control.Concurrent.MVar
 import Control.Monad.IO.Class (liftIO)
-
+import Data.Aeson
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Char8 as S8
 import Data.Function (on)
@@ -29,7 +31,7 @@ import Data.Word (Word8)
 
 import Snap.Core (MonadSnap, Request, getHeaders, getParam, getRequest,
                   method, Method(GET, POST), pass, route,
-                  writeBS)
+                  writeBS, writeLBS)
 import Snap.Http.Server (httpServe)
 import qualified Snap.Http.Server.Config as Conf
 
@@ -47,22 +49,40 @@ handler :: MonadSnap m => Chan Command -> m ()
 handler chan = do
   route
     [ ("workflows", method GET (format "text/plain" getWorkflows))
-    , ("workflow/:name", method POST (instanciate chan))
+    , ("workflows", method GET (format "application/json" getWorkflowsJSON))
+    , ("workflows/:name", method POST (format "text/plain" $ instanciate chan))
+    , ("workflows/:name", method POST (format "application/json" $ instanciateJSON chan))
     ]
 
 getWorkflows :: MonadSnap m => m ()
 getWorkflows = mapM_ (writeBS . S8.pack . (++ "\n")) ["a", "ab"]
+
+getWorkflowsJSON :: MonadSnap m => m ()
+getWorkflowsJSON = writeLBS . encode $ map WorkflowName ["a", "ab"]
 
 instanciate :: MonadSnap m => Chan Command -> m ()
 instanciate chan = do
   mname <- getParam "name"
   case mname of
     Just name -> do
-      mvar <- liftIO newEmptyMVar
-      liftIO $ writeChan chan $
-        Instanciate (Right . WorkflowName $ S8.unpack name) [] (Just mvar)
-      WorkflowId i <- liftIO $ readMVar mvar
+      WorkflowId i <- liftIO $ instanciate' chan name
       writeBS . S8.pack $ i ++ "\n"
+    _ -> pass
+
+instanciate' :: Chan Command -> S8.ByteString -> IO WorkflowId
+instanciate' chan name = do
+  mvar <- newEmptyMVar
+  writeChan chan $
+    Instanciate (Right . WorkflowName $ S8.unpack name) [] (Just mvar)
+  readMVar mvar
+
+instanciateJSON :: MonadSnap m => Chan Command -> m ()
+instanciateJSON chan = do
+  mname <- getParam "name"
+  case mname of
+    Just name -> do
+      i <- liftIO $ instanciate' chan name
+      writeLBS $ encode i
     _ -> pass
 
 ----------------------------------------------------------------------

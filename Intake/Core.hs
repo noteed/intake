@@ -1,6 +1,11 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 module Intake.Core where
+
+import Control.Applicative ((<$>))
+import Control.Monad (mzero)
+import Data.Aeson
 
 ----------------------------------------------------------------------
 -- Types
@@ -23,6 +28,16 @@ instance Show WorkflowId where
 instance Eq WorkflowId where
   (WorkflowId a) == (WorkflowId b) = a == b
 
+instance FromJSON WorkflowId where
+  parseJSON (Object v) = WorkflowId <$>
+    v .: "id"
+  parseJSON _ = mzero
+
+instance ToJSON WorkflowId where
+  toJSON (WorkflowId i) = object $
+    [ "id" .= i
+    ]
+
 -- | Identify a workflow configuration, as registered with `intake define`.
 newtype WorkflowName = WorkflowName String
 
@@ -31,6 +46,16 @@ instance Show WorkflowName where
 
 instance Eq WorkflowName where
   (WorkflowName a) == (WorkflowName b) = a == b
+
+instance FromJSON WorkflowName where
+  parseJSON (Object v) = WorkflowName <$>
+    v .: "name"
+  parseJSON _ = mzero
+
+instance ToJSON WorkflowName where
+  toJSON (WorkflowName name) = object $
+    [ "name" .= name
+    ]
 
 data Workflow =
     Job String [String] -- ^ command and arguments
