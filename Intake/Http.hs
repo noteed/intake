@@ -12,10 +12,11 @@
 -- tibbe's ekg package (and contains some of its code).
 --
 -- Example client:
---   > curl -H "Accept: text/plain" http://127.0.0.1:7001/workflows
---   > curl -H "Accept: application/json" http://127.0.0.1:7001/workflows
---   > curl -H "Accept: text/plain" http://127.0.0.1:7001/workflows/sleep2 -d ''
---   > curl -H "Accept: application/json" http://127.0.0.1:7001/workflows/sleep2 -d ''
+--
+-- > curl -H "Accept: text/plain" http://127.0.0.1:7001/workflows
+-- > curl -H "Accept: application/json" http://127.0.0.1:7001/workflows
+-- > curl -H "Accept: text/plain" http://127.0.0.1:7001/workflows/sleep2 -d ''
+-- > curl -H "Accept: application/json" http://127.0.0.1:7001/workflows/sleep2 -d ''
 module Intake.Http where
 
 import Control.Applicative ((<$>))

@@ -49,3 +49,4 @@ hpc markup intake.tix --hpcdir dist/hpc/mix/intake-0.0.0 --destdir coverage
 hpc report intake.tix --hpcdir dist/hpc/mix/intake-0.0.0
 rm intake.tix
 rm -rf tix
+cabal haddock --internal --hyperlink-source
