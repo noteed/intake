@@ -1,0 +1,2 @@
+invoked tests/invoked-false.txt
+The command exit code is not 0.

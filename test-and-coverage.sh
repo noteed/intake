@@ -1,5 +1,7 @@
 #! /bin/sh
-cabal clean && cabal configure --enable-library-coverage && cabal build || exit 1
+cabal clean || exit 1
+cabal configure --enable-library-coverage --enable-tests || exit 1
+cabal build || exit 1
 
 rm -rf tix
 mkdir tix
@@ -42,8 +44,7 @@ echo $ID
 kill -INT $SERVER
 sleep 2
 
-rm -r coverage
-mkdir -p coverage
+# Combine all the .tix files in a single intake.tix file.
 TIX=$(ls tix/*.tix | head -n 1)
 cp $TIX intake.tix
 TIXS=$(ls tix/*.tix | tail -n +2)
@@ -51,6 +52,9 @@ for i in $TIXS ; do
   hpc combine --union $i intake.tix --output new.tix
   mv new.tix intake.tix
 done
+
+rm -r coverage
+mkdir -p coverage
 hpc markup intake.tix --hpcdir dist/hpc/mix/intake-0.0.0 --destdir coverage
 hpc report intake.tix --hpcdir dist/hpc/mix/intake-0.0.0
 covered markup --hpcdir dist/hpc/mix/intake-0.0.0/ intake
