@@ -1,5 +1,0 @@
-# Intake - A workflow system to orchestrate jobs
-
-The idea is to expose a small DSL to describe a workflow of jobs that must be
-run in a controlled manner. Jobs should be mostly textual command and arguments
-so a possible implementation can run directly the jobs or push them to a queue.

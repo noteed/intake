@@ -3,6 +3,12 @@ cabal clean && cabal configure --enable-library-coverage && cabal build || exit 
 
 rm -rf tix
 mkdir tix
+# With the HPCTIXDIR environment variable set, an HPC-instrumented process
+# will use its own .tix file. This is necessary here as Intake is run
+# concurrently with itself: a server and multiple clients.
+# `hpc combine` can then be used to aggregate the .tix files in a single
+# new .tix file, used as usual with `hpc report`, `hpc markup` or
+# `covered markup`.
 export HPCTIXDIR=tix
 
 ./dist/build/intake/intake || exit 1
@@ -47,6 +53,7 @@ for i in $TIXS ; do
 done
 hpc markup intake.tix --hpcdir dist/hpc/mix/intake-0.0.0 --destdir coverage
 hpc report intake.tix --hpcdir dist/hpc/mix/intake-0.0.0
+covered markup --hpcdir dist/hpc/mix/intake-0.0.0/ intake
 rm intake.tix
 rm -rf tix
 cabal haddock --internal --hyperlink-source

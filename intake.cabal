@@ -1,9 +1,9 @@
 name:                intake
 version:             0.0.0
 Cabal-Version:       >= 1.8
-synopsis:            Run job workflows
+synopsis:            UNIX jobs orchestration
 description:
-  Intake runs job workflows.
+  Intake runs process workflows (as in UNIX, not business process).
 category:            System
 license:             BSD3
 license-file:        LICENSE

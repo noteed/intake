@@ -22,7 +22,7 @@ import Intake.Core hiding (advance, inspect, instanciate, logs)
 backend :: Backend
 backend = Backend instanciate inspect advance logs
 
--- | Implement `Intake.Core.instanciate` by loading a worflow from the file
+-- | Implement `Intake.Core.instanciate` by loading a workflow from the file
 -- system.
 instanciate :: (Either String WorkflowName) -> [String] -> IO WorkflowEnv
 instanciate name arguments = do
