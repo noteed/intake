@@ -3,6 +3,12 @@ cabal clean || exit 1
 cabal configure --enable-library-coverage --enable-tests || exit 1
 cabal build || exit 1
 
+invoked tests/invoked-echo-a.txt || exit 1
+invoked tests/invoked-invoked-true.txt || exit 1
+invoked tests/invoked-true.txt || exit 1
+# TODO invoked tests/invoked-false.txt
+# TODO invoked tests/invoked-invoked-false.txt
+
 rm -rf tix
 mkdir tix
 # With the HPCTIXDIR environment variable set, an HPC-instrumented process
