@@ -57,6 +57,7 @@ handler chan = do
     , ("instances/:id/status", method GET (format "application/json" statusJSON))
     ]
 
+-- TODO must be sorted.
 getWorkflows :: MonadSnap m => m ()
 getWorkflows = mapM_ (writeBS . S8.pack . (++ "\n")) ["a", "ab"]
 

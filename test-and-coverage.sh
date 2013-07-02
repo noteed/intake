@@ -20,8 +20,8 @@ export HPCTIXDIR=tix
 SERVER=$!
 sleep 2
 
-curl -H "Accept: text/plain" http://127.0.0.1:7001/workflows
-curl -H "Accept: application/json" http://127.0.0.1:7001/workflows
+invoked tests/intake-curl-text-workflows.txt || exit 1
+invoked tests/intake-curl-json-workflows.txt || exit 1
 curl -H "Accept: text/plain" http://127.0.0.1:7001/workflows/a -d ''
 curl -H "Accept: application/json" http://127.0.0.1:7001/workflows/a -d ''
 

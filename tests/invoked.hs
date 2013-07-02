@@ -20,8 +20,9 @@ invoke :: String -> IO ()
 invoke filename = do
   content <- readFile filename
   let content' = lines content
-      command : arguments = words $ head content'
+      command : arguments = words' $ head content'
       expected = unlines $ tail content'
+      expected' = if last content /= '\n' then init expected else expected
   (code, out, err) <- readProcessWithExitCode command arguments ""
   when (code /= ExitSuccess) $ do
     hPutStrLn stderr "The command exit code is not 0."
@@ -31,11 +32,22 @@ invoke filename = do
     hPutStrLn stderr "The command stderr is:"
     hPutStrLn stderr err
     exitFailure
-  when (out /= expected) $ do
+  when (out /= expected') $ do
     hPutStrLn stderr "The command stdout is not the expected output."
     hPutStrLn stderr "The command stdout is:"
     hPutStrLn stderr out
     hPutStrLn stderr "The expected output is:"
-    hPutStrLn stderr expected
+    hPutStrLn stderr expected'
     exitFailure
   exitSuccess
+
+-- | Same as the standard `words` function but try to respect quoted strings.
+-- Will explode on unbalanced quotes.
+words' :: String -> [String]
+words' s_ = case dropWhile (== ' ') s_ of
+  "" -> []
+  '"' : s -> case span (/= '"') s of
+    (a, '"' : b) -> a : words' b
+    _ -> error "Unbalanced quotes."
+  s -> case span (/= ' ') s of
+    (a, b) -> a : words' b
