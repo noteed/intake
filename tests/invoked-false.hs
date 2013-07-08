@@ -1,6 +1,6 @@
 import Intake.Job
 import System.Exit
-main = defaultMain defaultInvoke
-  { inCommand = "false"
-  , inExitCode = Just (ExitFailure 1)
+main = defaultMain defaultJob
+  { jobCommand = "false"
+  , jobExitCode = Just (ExitFailure 1)
   }

@@ -1,4 +1,4 @@
 import Intake.Job
-main = defaultMain defaultInvoke
-  { inCommand = "true"
+main = defaultMain defaultJob
+  { jobCommand = "true"
   }

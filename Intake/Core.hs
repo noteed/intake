@@ -58,26 +58,26 @@ instance ToJSON WorkflowName where
     ]
 
 data Workflow =
-    Job String [String] -- ^ command and arguments
+    Single String [String] -- ^ command and arguments
   | Sequence Workflow Workflow
   | Parallel Workflow Workflow
   | Retry Int Workflow
 
 -- | Same as `Workflow` but with additional data.
 data WorkflowState =
-    SJob Int String [String] JStatus -- ^ label, command and arguments
+    SSingle Int String [String] JStatus -- ^ label, command and arguments
   | SSequence WorkflowState WorkflowState
   | SParallel WorkflowState WorkflowState
   | SRetry Int Int WorkflowState -- ^ Maximum allowed attempts , already tried.
 
 instance Show WorkflowState where
-  show (SJob l cmd args s) = "#" ++ show l ++ " " ++ cmd ++ " " ++ show args ++ "(" ++ show s ++ ")"
+  show (SSingle l cmd args s) = "#" ++ show l ++ " " ++ cmd ++ " " ++ show args ++ "(" ++ show s ++ ")"
   show (SSequence a b) = "(" ++ show a ++ " >> " ++ show b ++ ")"
   show (SParallel a b) = "(" ++ show a ++ " // " ++ show b ++ ")"
   show (SRetry m n a) = show a ++ " : " ++ show n ++ "/" ++ show m
 
 instance Eq WorkflowState where
-  SJob i cmd args s == SJob i' cmd' args' s' = i == i' && cmd == cmd'
+  SSingle i cmd args s == SSingle i' cmd' args' s' = i == i' && cmd == cmd'
    && args == args' && s == s'
   SSequence a b == SSequence a' b' = a == a' && b == b'
   SParallel a b == SParallel a' b' = a == a' && b == b'
@@ -158,7 +158,7 @@ initializeWorkflow = fst . makeReady False . fst . labelWorkflow 0
 
 labelWorkflow  :: Int -> Workflow -> (WorkflowState, Int)
 labelWorkflow l w = case w of
-  Job c as -> (SJob l c as Waiting, succ l)
+  Single c as -> (SSingle l c as Waiting, succ l)
   Sequence a b -> let (a', l') = labelWorkflow l a
                       (b', l'') = labelWorkflow l' b
                   in (SSequence a' b', l'')
@@ -170,10 +170,10 @@ labelWorkflow l w = case w of
 
 makeReady  :: Bool -> WorkflowState -> (WorkflowState, Bool)
 makeReady ready w = case w of
-  SJob l c as Waiting -> (SJob l c as (if ready then Waiting else Ready), True)
-  SJob l c as Ready -> (SJob l c as Ready, False)
-  SJob l c as Started -> (SJob l c as Started, False)
-  SJob l c as Completed -> (SJob l c as Completed, False)
+  SSingle l c as Waiting -> (SSingle l c as (if ready then Waiting else Ready), True)
+  SSingle l c as Ready -> (SSingle l c as Ready, False)
+  SSingle l c as Started -> (SSingle l c as Started, False)
+  SSingle l c as Completed -> (SSingle l c as Completed, False)
   SSequence a b -> let (a', ready') = makeReady ready a
                        (b', ready'') = makeReady ready' b
                    in (SSequence a' b', ready'')
@@ -193,7 +193,7 @@ step e =
 step' :: WorkflowState -> (WorkflowState, [Run])
 step' s = do
   case s of
-    SJob l cmd args Ready -> (SJob l cmd args Started, [Run l])
+    SSingle l cmd args Ready -> (SSingle l cmd args Started, [Run l])
     SSequence a b ->
       if isCompleted a
       then let (b', rs) = step' b
@@ -211,7 +211,7 @@ step' s = do
 
 isCompleted :: WorkflowState -> Bool
 isCompleted s = case s of
-  SJob _ _ _ Completed -> True
+  SSingle _ _ _ Completed -> True
   SSequence a b -> isCompleted a && isCompleted b
   SParallel a b -> isCompleted a && isCompleted b
   SRetry _ _ a -> isCompleted a
@@ -222,8 +222,8 @@ extract e r = extract' (envState e) r
 
 extract' :: WorkflowState -> Run -> Maybe (String, [String])
 extract' s (Run l) = case s of
-  SJob l' cmd args _ | l' == l -> Just (cmd, args)
-  SJob _ _ _ _ -> Nothing
+  SSingle l' cmd args _ | l' == l -> Just (cmd, args)
+  SSingle _ _ _ _ -> Nothing
   SSequence a b -> case extract' a (Run l) of
     Nothing -> extract' b (Run l)
     found -> found
@@ -233,8 +233,8 @@ status e = status' $ envState e
 
 status' :: WorkflowState -> WStatus
 status' s = case s of
-  SJob _ _ _ Completed -> WCompleted
-  SJob l _ _ Started -> WStarted [l]
+  SSingle _ _ _ Completed -> WCompleted
+  SSingle l _ _ Started -> WStarted [l]
   SSequence a b -> case (status' a, status' b) of
     (WCompleted, WCompleted) -> WCompleted
     (WInstanciated, WInstanciated) -> WInstanciated
@@ -259,8 +259,8 @@ setStatus l s e = e { envState = setStatus' l s (envState e) }
 
 setStatus' :: Int -> JStatus -> WorkflowState -> WorkflowState
 setStatus' l st s = case s of
-  SJob l' cmd args st' | l == l' -> SJob l' cmd args st
-                       | otherwise -> SJob l' cmd args st'
+  SSingle l' cmd args st' | l == l' -> SSingle l' cmd args st
+                       | otherwise -> SSingle l' cmd args st'
   SSequence a b -> setStatus' l st a `SSequence` setStatus' l st b
   SParallel a b -> setStatus' l st a `SParallel` setStatus' l st b
   SRetry m n a -> SRetry m n $ setStatus' l st a

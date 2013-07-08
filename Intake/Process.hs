@@ -94,7 +94,7 @@ work (WorkflowId i') l cmd args = do
 
 makeWorkflow :: String -> WorkflowId -> [String] -> IO WorkflowEnv
 makeWorkflow cmd i arguments = do
-  let w = Job cmd arguments
+  let w = Single cmd arguments
       s = initializeWorkflow w
   return $ WorkflowEnv (Left cmd) i arguments s
 
@@ -107,14 +107,14 @@ loadWorkflow name i arguments = do
 -- TODO return a Maybe.
 readWorkflow :: WorkflowName -> [String] -> IO Workflow
 readWorkflow (WorkflowName name) arguments = return $ case name of
-  "a" -> Job "echo" ["a"]
-  "ab" -> Job "echo" ["a"] `Sequence` Job "echo" ["b"]
-  "sleep2" -> Job "sleep" ["2"] `Sequence` Job "echo" ["a"]
-    `Sequence` Job "sleep" ["3"] `Sequence` Job "echo" ["b"]
-  "ping" -> Job "ping" arguments
+  "a" -> Single "echo" ["a"]
+  "ab" -> Single "echo" ["a"] `Sequence` Single "echo" ["b"]
+  "sleep2" -> Single "sleep" ["2"] `Sequence` Single "echo" ["a"]
+    `Sequence` Single "sleep" ["3"] `Sequence` Single "echo" ["b"]
+  "ping" -> Single "ping" arguments
   _ -> error "No such workflow."
---  (Job "echo" ["a"] `Sequence` Job "echo" ["b"])
---    `Parallel` Job "echo" ["c"]
+--  (Single "echo" ["a"] `Sequence` Single "echo" ["b"])
+--    `Parallel` Single "echo" ["c"]
 
 saveEnvironment :: WorkflowEnv -> IO ()
 saveEnvironment e = do
