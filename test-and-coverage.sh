@@ -3,11 +3,11 @@ cabal clean || exit 1
 cabal configure --enable-library-coverage --enable-tests || exit 1
 cabal build || exit 1
 
-invoked tests/invoked-echo-a.txt || exit 1
-invoked tests/invoked-invoked-true.txt || exit 1
-invoked tests/invoked-true.txt || exit 1
-# TODO invoked tests/invoked-false.txt
-# TODO invoked tests/invoked-invoked-false.txt
+./dist/build/intake/intake run -f tests/invoked-echo-a.txt || exit 1
+./dist/build/intake/intake run -f tests/invoked-invoked-true.txt || exit 1
+./dist/build/intake/intake run -f tests/invoked-true.txt || exit 1
+# TODO intake run -f tests/invoked-false.txt
+# TODO intake run -f tests/invoked-invoked-false.txt
 
 rm -rf tix
 mkdir tix
@@ -26,8 +26,8 @@ export HPCTIXDIR=tix
 SERVER=$!
 sleep 2
 
-invoked tests/intake-curl-text-workflows.txt || exit 1
-invoked tests/intake-curl-json-workflows.txt || exit 1
+./dist/build/intake/intake run -f tests/intake-curl-text-workflows.txt || exit 1
+./dist/build/intake/intake run -f tests/intake-curl-json-workflows.txt || exit 1
 curl -H "Accept: text/plain" http://127.0.0.1:7001/workflows/a -d ''
 curl -H "Accept: application/json" http://127.0.0.1:7001/workflows/a -d ''
 

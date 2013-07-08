@@ -32,6 +32,7 @@ library
                        Intake.Core,
                        Intake.Engine,
                        Intake.Http,
+                       Intake.Job,
                        Intake.Process
   other-modules:       Network.JSONClient
   ghc-options:         -Wall
@@ -48,13 +49,6 @@ executable intake
                        test-framework-hunit == 0.3.*
   ghc-options:         -Wall
                        -threaded
-
-executable invoked
-  hs-source-dirs:      tests
-  main-is:             invoked.hs
-  build-depends:       base == 4.*,
-                       process == 1.1.*
-  ghc-options:         -Wall
 
 -- The test suite is actually test-and-coverage.sh.
 test-suite intake-tests

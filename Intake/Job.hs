@@ -1,21 +1,11 @@
 {-# LANGUAGE RecordWildCards #-}
--- Invoked takes a file composed of two parts: the first part is a command to
--- execute, the second part is an expected result that the command should
--- produce. That's all Folks!
-module Main (main) where
+-- Intake job representation and processing.
+module Intake.Job where
 
 import Data.Maybe (fromJust)
-import System.Environment (getArgs)
 import System.Exit (exitWith, ExitCode(..))
 import System.IO (hPutStrLn, stderr)
 import System.Process (readProcessWithExitCode)
-
-main :: IO ()
-main = do
-  args <- getArgs
-  case args of
-    [filename] -> invoke filename
-    _ -> putStrLn $ "Usage: invoked FILENAME"
 
 invoke :: String -> IO ()
 invoke filename = readInvoke filename >>= runInvoke >>= exitWith

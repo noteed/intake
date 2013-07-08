@@ -16,6 +16,7 @@ import qualified Intake.Client as Client
 import Intake.Core
 import qualified Intake.Engine as Engine
 import Intake.Http (serve)
+import Intake.Job (invoke)
 import Intake.Process (backend, work)
 
 main :: IO ()
@@ -43,6 +44,7 @@ data Cmd =
     { cmdWorkflowName :: String
     , cmdArguments :: [String]
     , cmdCommand :: Bool
+    , cmdFile :: Bool
     }
   | CmdStatus
     { cmdWorkflowIdPrefix :: String
@@ -79,6 +81,11 @@ cmdRun = CmdRun
     &= help "When this flag is given, accepts a command instead of a workflow\
       \ name. A workflow with the command as its sole job is then\
       \ instanciated and run."
+  , cmdFile = def -- TODO -f and -c must be exclusive.
+    &= explicit
+    &= name "f"
+    &= help "When this flag is given, accepts a file name instead of a\
+      \ workflow name."
   } &= help "Run a workflow with the provided arguments."
     &= explicit
     &= name "run"
@@ -156,9 +163,12 @@ cmdTests = CmdTests
 
 runCmd :: Cmd -> IO ()
 runCmd CmdRun{..} = do
-  let n = (if cmdCommand then Left else Right . WorkflowName) cmdWorkflowName
-  WorkflowId i <- Client.instanciate n
-  putStrLn $ take 12 i ++ "  " ++ i
+  if cmdFile
+    then invoke cmdWorkflowName
+    else do
+      let n = (if cmdCommand then Left else Right . WorkflowName) cmdWorkflowName
+      WorkflowId i <- Client.instanciate n
+      putStrLn $ take 12 i ++ "  " ++ i
 
 runCmd CmdStatus{..} = do
   Client.status (WorkflowIdPrefix cmdWorkflowIdPrefix) >>= print
