@@ -7,6 +7,9 @@ import System.Exit (exitWith, ExitCode(..))
 import System.IO (hPutStrLn, stderr)
 import System.Process (readProcessWithExitCode)
 
+defaultMain :: Invoke -> IO ()
+defaultMain i = runInvoke' i >>= exitWith
+
 invoke :: String -> IO ()
 invoke filename = readInvoke filename >>= runInvoke >>= exitWith
 
