@@ -7,16 +7,16 @@ import System.Exit (exitWith, ExitCode(..))
 import System.IO (hPutStrLn, stderr)
 import System.Process (readProcessWithExitCode)
 
-import Intake.Core (Job(..))
+import Intake.Core (Job(..), JobResult(..))
 
 defaultMain :: Job -> IO ()
-defaultMain i = runJob' i >>= exitWith
+defaultMain i = runJob i >>= resultToExitCode i >>= exitWith
 
 run :: String -> IO ()
-run filename = readJob filename >>= runJob >>= exitWith
+run filename = readJobs filename >>= runJobs >>= exitWith
 
-readJob :: String -> IO [Job]
-readJob filename = do
+readJobs :: String -> IO [Job]
+readJobs filename = do
   content <- readFile filename
   let content' = lines content
       command : arguments = words' $ head content'
@@ -24,17 +24,24 @@ readJob filename = do
       expected' = if last content /= '\n' then init expected else expected
   return [Job command arguments "" (Just "") (Just expected') (Just ExitSuccess)]
 
-runJob :: [Job] -> IO ExitCode
-runJob [] = return ExitSuccess
-runJob (i : is) = do
-  r <- runJob' i
+runJobs :: [Job] -> IO ExitCode
+runJobs [] = return ExitSuccess
+runJobs (i : is) = do
+  r <- runJob i >>= resultToExitCode i
   case r of
-    ExitSuccess -> runJob is
+    ExitSuccess -> runJobs is
     _ -> return r
 
-runJob' :: Job -> IO ExitCode
-runJob' Job{..} = do
+runJob :: Job -> IO JobResult
+runJob Job{..} = do
   (code, out, err) <- readProcessWithExitCode jobCommand jobArguments jobStdin
+  return $ JobResult code err out
+
+resultToExitCode :: Job -> JobResult -> IO ExitCode
+resultToExitCode Job{..} JobResult{..} = do
+  let code = jobExitCode'
+      err = jobStderr'
+      out = jobStdout'
   if maybe False (code /=) jobExitCode
     then unexpectedExitCode
     else if maybe False (err /=) jobStderr

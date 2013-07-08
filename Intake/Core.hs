@@ -71,6 +71,12 @@ data Job = Job
   }
   deriving (Eq, Show)
 
+data JobResult = JobResult
+  { jobExitCode' :: ExitCode
+  , jobStderr' :: String
+  , jobStdout' :: String
+  }
+
 defaultJob :: Job
 defaultJob = Job "true" [] "" (Just "") (Just "") (Just ExitSuccess)
 
