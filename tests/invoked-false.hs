@@ -1,3 +1,4 @@
+import Intake.Core
 import Intake.Job
 import System.Exit
 main = defaultMain defaultJob

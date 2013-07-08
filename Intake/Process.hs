@@ -1,5 +1,5 @@
 {-# LANGUAGE TupleSections #-}
--- | Implement the Intake workflow with System.Process. The environment is
+-- | Implement the Intake workflow with 'System.Process'. The environment is
 -- saved to/loaded from the file system.
 module Intake.Process where
 
@@ -94,7 +94,7 @@ work (WorkflowId i') l cmd args = do
 
 makeWorkflow :: String -> WorkflowId -> [String] -> IO WorkflowEnv
 makeWorkflow cmd i arguments = do
-  let w = Single cmd arguments
+  let w = Single $ defaultJob' cmd arguments
       s = initializeWorkflow w
   return $ WorkflowEnv (Left cmd) i arguments s
 
@@ -107,11 +107,11 @@ loadWorkflow name i arguments = do
 -- TODO return a Maybe.
 readWorkflow :: WorkflowName -> [String] -> IO Workflow
 readWorkflow (WorkflowName name) arguments = return $ case name of
-  "a" -> Single "echo" ["a"]
-  "ab" -> Single "echo" ["a"] `Sequence` Single "echo" ["b"]
-  "sleep2" -> Single "sleep" ["2"] `Sequence` Single "echo" ["a"]
-    `Sequence` Single "sleep" ["3"] `Sequence` Single "echo" ["b"]
-  "ping" -> Single "ping" arguments
+  "a" -> Single (defaultJob' "echo" ["a"])
+  "ab" -> Single (defaultJob' "echo" ["a"]) `Sequence` Single (defaultJob' "echo" ["b"])
+  "sleep2" -> Single (defaultJob' "sleep" ["2"]) `Sequence` Single (defaultJob' "echo" ["a"])
+    `Sequence` Single (defaultJob' "sleep" ["3"]) `Sequence` Single (defaultJob' "echo" ["b"])
+  "ping" -> Single (defaultJob' "ping" arguments)
   _ -> error "No such workflow."
 --  (Single "echo" ["a"] `Sequence` Single "echo" ["b"])
 --    `Parallel` Single "echo" ["c"]

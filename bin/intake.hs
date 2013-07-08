@@ -224,16 +224,16 @@ tests =
       assertEqual "nothing to run" [] (snd . step . complete 0 . fst $ step echoA)
 
   , testCase "echo a >> echo b" $ do
-      assertEqual "instanciated" (wrap' $ SSingle 0 "echo" ["a"] Ready `SSequence` SSingle 1 "echo" ["b"] Waiting) (echoAB)
+      assertEqual "instanciated" (wrap' $ SSingle 0 (defaultJob' "echo" ["a"]) Ready `SSequence` SSingle 1 (defaultJob' "echo" ["b"]) Waiting) (echoAB)
       assertEqual "instanciated'" WInstanciated (status echoAB)
       assertEqual "run 0" [Run 0] (snd $ step echoAB)
       assertEqual "started" (WStarted [0]) (status . fst $ step echoAB)
       assertEqual "still started" (WStarted []) (status . complete 0 . fst $ step echoAB)
       assertEqual "still started"
-        (wrap' $ SSingle 0 "echo" ["a"] Completed `SSequence` SSingle 1 "echo" ["b"] Ready)
+        (wrap' $ SSingle 0 (defaultJob' "echo" ["a"]) Completed `SSequence` SSingle 1 (defaultJob' "echo" ["b"]) Ready)
         (complete 0 . fst $ step echoAB)
       assertEqual "still started"
-        (wrap' $ SSingle 0 "echo" ["a"] Completed `SSequence` SSingle 1 "echo" ["b"] Started)
+        (wrap' $ SSingle 0 (defaultJob' "echo" ["a"]) Completed `SSequence` SSingle 1 (defaultJob' "echo" ["b"]) Started)
         (fst . step . complete 0 . fst $ step echoAB)
       assertEqual "run 1" [Run 1] (snd . step . complete 0 . fst $ step echoAB)
       assertEqual "still started" (WStarted [1]) (status . fst . step . complete 0 . fst $ step echoAB)
@@ -242,7 +242,7 @@ tests =
       assertBool "completed" (isCompleted . envState . complete 1 . fst . step . complete 0 . fst $ step echoAB)
 
   , testCase "echo a // echo b" $ do
-      assertEqual "instanciated" (wrap' $ SSingle 0 "echo" ["a"] Ready `SParallel` SSingle 1 "echo" ["b"] Ready) (echoAB')
+      assertEqual "instanciated" (wrap' $ SSingle 0 (defaultJob' "echo" ["a"]) Ready `SParallel` SSingle 1 (defaultJob' "echo" ["b"]) Ready) (echoAB')
       assertEqual "instanciated'" WInstanciated (status echoAB')
       assertEqual "run 0 and 1" [Run 0, Run 1] (snd $ step echoAB')
       assertEqual "started" (WStarted [0, 1]) (status . fst $ step echoAB')
@@ -256,7 +256,7 @@ tests =
       assertBool "completed" (isCompleted . envState . complete 1 . fst . step . complete 0 . fst $ step echoAB')
 
   , testCase "echo a /2" $ do
-      assertEqual "instanciated" (wrap' $ SRetry 2 0 $ SSingle 0 "echo" ["a"] Ready) (echoRA)
+      assertEqual "instanciated" (wrap' $ SRetry 2 0 $ SSingle 0 (defaultJob' "echo" ["a"]) Ready) (echoRA)
       assertEqual "instanciated'" WInstanciated (status echoRA)
       assertEqual "run 0" [Run 0] (snd $ step echoRA)
       assertEqual "started" (WStarted [0]) (status . fst $ step echoRA)
@@ -277,7 +277,7 @@ echoRA :: WorkflowEnv
 echoRA = wrap $ Retry 2 $ echo "a"
 
 echo :: String -> Workflow
-echo s = Single "echo" $ words s
+echo s = Single $ defaultJob' "echo" (words s)
 
 wrap :: Workflow -> WorkflowEnv
 wrap = wrap' . initializeWorkflow

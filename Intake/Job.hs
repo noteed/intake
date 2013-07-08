@@ -1,5 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
--- Intake job representation and processing.
+-- | 'Job' handling.
 module Intake.Job where
 
 import Data.Maybe (fromJust)
@@ -7,24 +7,13 @@ import System.Exit (exitWith, ExitCode(..))
 import System.IO (hPutStrLn, stderr)
 import System.Process (readProcessWithExitCode)
 
+import Intake.Core (Job(..))
+
 defaultMain :: Job -> IO ()
 defaultMain i = runJob' i >>= exitWith
 
 run :: String -> IO ()
 run filename = readJob filename >>= runJob >>= exitWith
-
--- | Represent a single job with its expected behavior.
-data Job = Job
-  { jobCommand :: String -- ^ The command to execute.
-  , jobArguments :: [String] -- ^ Arguments for the command.
-  , jobStdin :: String -- ^ Standard input to provide to the command.
-  , jobStderr :: Maybe String -- ^ Expected standard error.
-  , jobStdout :: Maybe String -- ^ Expected standard output.
-  , jobExitCode :: Maybe ExitCode -- ^ Expected exit code.
-  }
-
-defaultJob :: Job
-defaultJob = Job "true" [] "" (Just "") (Just "") (Just ExitSuccess)
 
 readJob :: String -> IO [Job]
 readJob filename = do
