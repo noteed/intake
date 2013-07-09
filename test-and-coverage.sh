@@ -10,6 +10,7 @@ runghc -Idist/build/ tests/invoked-true.hs || exit 1
 # TODO intake run -f tests/invoked-false.txt || exit 1
 runghc -Idist/build/ tests/invoked-false.hs || exit 1
 # TODO intake run -f tests/invoked-invoked-false.txt || exit 1
+runghc -Idist/build/ tests/invoked-invoked-false.hs || exit 1
 
 rm -rf tix
 mkdir tix
