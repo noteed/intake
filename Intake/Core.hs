@@ -75,7 +75,9 @@ data JobResult = JobResult
   { jobExitCode' :: ExitCode
   , jobStderr' :: String
   , jobStdout' :: String
+  , jobMatches :: Maybe [(String, String)] -- ^ Strings matched in stdout.
   }
+  deriving Show
 
 defaultJob :: Job
 defaultJob = Job "true" [] "" (Just "") (Just "") (Just ExitSuccess)

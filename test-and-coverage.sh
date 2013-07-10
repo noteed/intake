@@ -34,10 +34,7 @@ sleep 2
 curl -H "Accept: text/plain" http://127.0.0.1:7001/workflows/a -d ''
 curl -H "Accept: application/json" http://127.0.0.1:7001/workflows/a -d ''
 
-ID=$(./dist/build/intake/intake run a | cut -f 3 -d ' ')
-echo $ID
-./dist/build/intake/intake show $ID
-./dist/build/intake/intake status $ID
+runghc -Idist/build/ tests/intake-run-00.hs || exit 1
 
 # ./dist/build/intake/intake status x # no such build
 mkdir ~/.intake/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/
