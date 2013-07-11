@@ -50,16 +50,18 @@ resultToExitCode env Job{..} JobResult{..} = do
       err = jobStderr'
       out = jobStdout'
   if maybe False (code /=) jobExitCode
-    then unexpectedExitCode
+    then unexpectedExitCode err
     else if maybe False ((err /=) . replace env) jobStderr
          then unexpectedStderr err
          else if jobMatches == Nothing
               then unexpectedStdout out
               else return ExitSuccess
   where
-  unexpectedExitCode = do
+  unexpectedExitCode err' = do
     hPutStrLn stderr $
       "The command exit code is not " ++ show jobExitCode ++ "."
+    hPutStrLn stderr "The command stderr is:"
+    hPutStrLn stderr err'
     return $ ExitFailure 1
   unexpectedStderr err' = do
     hPutStrLn stderr "The command stderr is not the expected output."
