@@ -4,7 +4,6 @@ module Main (main) where
 
 import Control.Concurrent (forkIO)
 import Control.Concurrent.Chan (newChan)
-import qualified Data.Map as M
 import Data.Version (showVersion)
 import Paths_intake (version)
 import System.Console.CmdArgs.Implicit
@@ -182,7 +181,7 @@ runCmd CmdWork{..} = do
 
 runCmd CmdServe{..} = do
   chan <- newChan
-  _ <- forkIO $ Engine.loop chan M.empty False
+  _ <- forkIO $ Engine.loop chan 0 False
   serve chan
 
 runCmd CmdWorkflows{..} = do

@@ -1,10 +1,10 @@
 {-# LANGUAGE TupleSections #-}
--- | Implement the Intake workflow with 'System.Process'. The environment is
--- saved to/loaded from the file system.
+-- | Implement the Intake engine backend with 'System.Process'. The
+-- environment is saved to/loaded from the file system.
 module Intake.Process where
 
 import Control.Applicative ((<$>))
-import Control.Concurrent (readMVar)
+import Control.Concurrent.MVar (readMVar)
 import Control.Monad (filterM)
 import qualified Control.Monad.Random as R
 import Data.List (foldl', isPrefixOf)
@@ -17,13 +17,13 @@ import System.IO (withFile, IOMode(WriteMode))
 import System.Process
 import System.Process.Internals (ProcessHandle(..), ProcessHandle__(..))
 
-import Intake.Core hiding (advance, inspect, instanciate, logs)
+import Intake.Core hiding (inspect, instanciate, load, logs, start)
 
 backend :: Backend
-backend = Backend instanciate inspect advance logs
+backend = Backend instanciate start loadEnvironment inspect logs
 
 -- | Implement `Intake.Core.instanciate` by loading a workflow from the file
--- system.
+-- system and saving the instance to the file system too.
 instanciate :: (Either String WorkflowName) -> [String] -> IO WorkflowEnv
 instanciate name arguments = do
   i@(WorkflowId i') <- newWorkflowId
@@ -36,23 +36,17 @@ instanciate name arguments = do
       putStrLn $ take 12 i' ++ "  Instanciating workflow `" ++ n ++
         "` with arguments " ++ show arguments ++ "."
       loadWorkflow (WorkflowName n) i arguments
+  saveEnvironment e
   return e
-
--- | Implement `Intake.Core.advance`.
-advance :: WorkflowEnv -> IO ()
-advance e = do
-  let (e', rs) = step e
-  saveEnvironment e'
-  mapM_(start e') rs
 
 newWorkflowId :: IO WorkflowId
 newWorkflowId = WorkflowId <$>
   (sequence $ replicate 64 $ R.fromList $ map (,1) $ ['a'..'f'] ++ ['0'..'9'])
 
-start :: WorkflowEnv -> Run -> IO ProcessHandle
+start :: WorkflowEnv -> Run -> IO ()
 start e r = do
   home <- getHomeDirectory
-  let (cmd, args) = maybe (error "No such job ID.") id $ extract e r
+  let (cmd, args) = maybe (error "No such job ID.") id $ extract e r -- TODO no error
       WorkflowId i' = envId e
       Run l = r
       dir = home </> ".intake" </> i' </> show l
@@ -71,7 +65,9 @@ start e r = do
     Right i -> writeFile (dir </> "pid") $ show i
     Left ExitSuccess -> writeFile (dir </> "exitcode") "0"
     Left (ExitFailure c) -> writeFile (dir </> "exitcode") $ show c
-  return h
+
+  _ <- waitForProcess h
+  return ()
 
 -- | Wrap a command so that its "state" file is changed to "Completed" upon
 -- completion of the process.

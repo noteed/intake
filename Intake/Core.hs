@@ -5,6 +5,7 @@
 module Intake.Core where
 
 import Control.Applicative ((<$>))
+import Control.Concurrent.MVar (MVar)
 import Control.Monad (mzero)
 import Data.Aeson
 import System.Exit (ExitCode(..))
@@ -14,6 +15,21 @@ import System.Exit (ExitCode(..))
 -- The trivial instances are there because the coverage reporting
 -- does not count the corresponding 'deriving' clauses.
 ----------------------------------------------------------------------
+
+-- | Commands for Intake engine. The engine will process those commands in a
+-- loop. Processing them will push new commands, but some external interface
+-- (e.g. an HTTP API) can also push commands.
+data Command =
+    Quit
+    -- ^ Stop the main loop.
+  | Instanciate (Either String WorkflowName) [String] (MVar WorkflowId)
+    -- ^ Instanciate a workflow. The MVar is used to return the WorkflowId.
+  | Start WorkflowId [Run]
+    -- ^ Start jobs for a given workflow.
+  | End WorkflowId Run
+    -- ^ Notify the engine that a job was completed.
+  | Free WorkflowId
+    -- ^ Notify the engine that a workflow was completed.
 
 newtype WorkflowIdPrefix = WorkflowIdPrefix String
 
@@ -172,10 +188,12 @@ instance ToJSON WStatus where
 data Backend = Backend
   { instanciate :: (Either String WorkflowName) -> [String] -> IO WorkflowEnv
   -- ^ Instanciate a workflow with the given arguments.
+  , start :: WorkflowEnv -> Run -> IO ()
+  -- ^ Run a job.
+  , load :: WorkflowId -> IO WorkflowEnv
+  -- ^ Return a complete representation of a workflow instance.
   , inspect :: WorkflowIdPrefix -> IO WorkflowEnv
   -- ^ Return a complete representation of a workflow instance.
-  , advance :: WorkflowEnv -> IO ()
-  -- ^ Advance the workflow.
   , logs :: WorkflowIdPrefix -> IO String
   -- ^ Return the logs (stdout only) of a workflow instance.
   }

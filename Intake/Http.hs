@@ -36,8 +36,7 @@ import Snap.Core (MonadSnap, Request, getHeaders, getParam, getRequest,
 import Snap.Http.Server (httpServe)
 import qualified Snap.Http.Server.Config as Conf
 
-import Intake.Core (inspect, status, WorkflowId(..), WorkflowIdPrefix(..), WorkflowName(..))
-import Intake.Engine (Command(..))
+import Intake.Core (inspect, status, Command(..), WorkflowId(..), WorkflowIdPrefix(..), WorkflowName(..))
 import Intake.Process (backend)
 
 serve :: Chan Command -> IO ()
