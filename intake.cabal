@@ -7,7 +7,7 @@ description:
 category:            System
 license:             BSD3
 license-file:        LICENSE
-author:              Vo Minh Thu
+author:              Hypered SPRL
 maintainer:          thu@hypered.io
 build-type:          Simple
 
@@ -35,7 +35,8 @@ library
                        Intake.Http,
                        Intake.Job,
                        Intake.Process
-  other-modules:       Network.JSONClient
+  other-modules:       Network.JSONClient,
+                       Paths_intake
   ghc-options:         -Wall
 
 executable intake
@@ -54,7 +55,8 @@ executable intake
 executable reesd-intake
   hs-source-dirs:      bin
   main-is:             reesd-intake.hs
-  build-depends:       base == 4.*
+  build-depends:       base == 4.*,
+                       cmdargs
   ghc-options:         -Wall
                        -threaded
 
