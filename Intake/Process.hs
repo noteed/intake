@@ -171,7 +171,7 @@ fullWorkflowId (WorkflowIdPrefix i') = do
 
 -- | Convenience function to turn a ProcessHandle into an Int.
 processHandleToInt :: ProcessHandle -> IO (Either ExitCode Int)
-processHandleToInt (ProcessHandle mvar) = do
+processHandleToInt (ProcessHandle mvar _) = do
   h <- readMVar mvar
   case h of
     OpenHandle i -> return . Right $ fromIntegral i

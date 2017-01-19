@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-cse #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
 module Main (main) where
