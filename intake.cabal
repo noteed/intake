@@ -11,52 +11,73 @@ author:              Hypered SPRL
 maintainer:          thu@hypered.io
 build-type:          Simple
 
+-- Commented because it's boring to compile.
+-- Can be undone later.
+
 library
-  build-depends:       aeson,
-                       attoparsec,
-                       base == 4.*,
-                       bytestring,
-                       containers,
-                       directory,
-                       filepath,
-                       HsOpenSSL,
-                       http-streams,
-                       io-streams,
-                       MonadRandom,
-                       process,
-                       regex-posix,
-                       snap-core,
-                       snap-server,
-                       text,
-                       transformers
-  exposed-modules:     Intake.Client,
-                       Intake.Core,
-                       Intake.Engine,
-                       Intake.Http,
-                       Intake.Job,
-                       Intake.Process
-  other-modules:       Network.JSONClient,
-                       Paths_intake
+  build-depends:
+    aeson,
+--    attoparsec,
+    base == 4.*,
+    bytestring,
+--    containers,
+--    directory,
+--    filepath,
+    lovelace,
+--    HsOpenSSL,
+--    http-streams,
+--    io-streams,
+--    MonadRandom,
+--    process,
+--    regex-posix,
+--    snap-core,
+--    snap-server,
+    text,
+    time,
+--    transformers,
+    unordered-containers,
+    vector
+  exposed-modules:
+--    Intake.Client,
+--    Intake.Core,
+--    Intake.Engine,
+--    Intake.Http,
+--    Intake.Job,
+--    Intake.Process
+    Intake.Types,
+    Intake.Walker,
+    Intake.Worker,
+    Intake.Workflow
+  other-modules:
+--    Network.JSONClient,
+    Paths_intake
   ghc-options:         -Wall
 
-executable intake
-  hs-source-dirs:      bin
-  main-is:             intake.hs
-  build-depends:       base == 4.*,
-                       cmdargs,
-                       containers,
-                       HUnit,
-                       intake,
-                       test-framework,
-                       test-framework-hunit
-  ghc-options:         -Wall
-                       -threaded
+--executable intake
+--  hs-source-dirs:      bin
+--  main-is:             intake.hs
+--  build-depends:       base == 4.*,
+--                       cmdargs,
+--                       containers,
+--                       HUnit,
+--                       intake,
+--                       test-framework,
+--                       test-framework-hunit
+--  ghc-options:         -Wall
+--                       -threaded
 
 executable reesd-intake
   hs-source-dirs:      bin
   main-is:             reesd-intake.hs
-  build-depends:       base == 4.*,
-                       cmdargs
+  build-depends:
+    aeson,
+    base == 4.*,
+    bytestring,
+    cmdargs,
+    intake,
+    lovelace,
+    text,
+    time
   ghc-options:         -Wall
                        -threaded
 
