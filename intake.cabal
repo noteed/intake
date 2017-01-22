@@ -20,6 +20,7 @@ library
 --    attoparsec,
     base == 4.*,
     bytestring,
+    cmdargs,
 --    containers,
 --    directory,
 --    filepath,
@@ -44,6 +45,7 @@ library
 --    Intake.Http,
 --    Intake.Job,
 --    Intake.Process
+    Intake.Commands,
     Intake.Types,
     Intake.Walker,
     Intake.Worker,

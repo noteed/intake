@@ -2,15 +2,14 @@
 {-# LANGUAGE RecordWildCards #-}
 module Intake.Walker where
 
-import Control.Concurrent.Chan (newChan, readChan, writeChan, Chan)
-import Control.Concurrent.MVar (newMVar, putMVar, takeMVar, MVar)
-import Data.Aeson (decode, encode, object, ToJSON, Value, (.=))
+import Control.Concurrent.Chan (readChan, writeChan, Chan)
+import Control.Concurrent.MVar (putMVar, takeMVar, MVar)
+import Data.Aeson (encode, object, ToJSON, Value, (.=))
 import qualified Data.ByteString.Lazy.Char8 as LB
-import Data.Text (Text)
 
 import Lovelace
 
-import Intake.Types
+import Intake.Types (WalkerInput(..), WalkState(..), WorkerInput(..))
 import Intake.Workflow
 
 
@@ -74,6 +73,7 @@ handleStep walk workerC (Step workflow a s t) (RToken k) =
     let s' = continue workflow a s t'
     handleStep walk workerC s' t'
 
+handleTaskResult :: WalkState -> Chan WorkerInput -> String -> Value -> IO WalkState
 handleTaskResult walk@WalkState{..} workerC activity args = do
   case lookup activity (activities wsWorkflow) of
     Just activity' -> do
@@ -91,8 +91,10 @@ enqueueTask walk workerC workflow a k t = do
 
 
 ------------------------------------------------------------------------------
+showJSON :: Value -> String
 showJSON = LB.unpack . encode
 
 
 --------------------------------------------------------------------------------
+logging :: String -> IO ()
 logging = putStrLn
