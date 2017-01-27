@@ -4,7 +4,7 @@
 module Intake.Commands where
 
 import Control.Concurrent (forkIO)
-import Control.Concurrent.Chan (newChan, writeChan, Chan)
+import Control.Concurrent.Chan (newChan, writeChan)
 import Control.Concurrent.MVar (newMVar)
 import Data.Aeson (decode, object, Value)
 import qualified Data.ByteString.Lazy.Char8 as LB
