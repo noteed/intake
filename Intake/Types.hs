@@ -1,5 +1,6 @@
 module Intake.Types where
 
+import Control.Concurrent.Chan (Chan)
 import Data.Aeson (Value)
 import Data.Text (Text)
 import Data.Time.Clock (UTCTime)
@@ -34,3 +35,13 @@ data WalkState = WalkState
   , wsOutput :: Maybe Value -- Nothing when the walk isn't complete.
   }
   deriving Show
+
+
+------------------------------------------------------------------------------
+type Worker = Chan WorkerInput -> Chan WalkerInput -> IO ()
+
+data Handler = Handler
+  { handleBuild :: Chan WorkerInput -> Chan WalkerInput -> String -> String -> Value -> IO ()
+  , handleRun :: Chan WorkerInput -> Chan WalkerInput -> String -> String -> Value -> IO ()
+  , handleClone :: Chan WorkerInput -> Chan WalkerInput -> String -> String -> Value -> IO ()
+  }

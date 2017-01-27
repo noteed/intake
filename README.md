@@ -83,6 +83,7 @@ import Data.Aeson (object)
 import Test.HUnit
 
 import Intake.Commands (parseFile, run)
+import Intake.Worker (successWorker)
 
 main :: IO ()
 main = do
@@ -91,7 +92,7 @@ main = do
       Right def <- parseFile "workflows/workflow-sample-00.json"
       -- TODO Use QuickCheck instead.
       let input = object []
-      result <- run False def input
+      result <- run False (successWorker False) def input
       assertEqual "identity result" input result))
   return ()
 ~~~

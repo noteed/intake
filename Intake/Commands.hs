@@ -15,9 +15,9 @@ import System.Console.CmdArgs.Explicit
 
 import Lovelace (Workflow)
 
-import Intake.Types (WalkerInput(..), WalkState(..), WorkerInput(..))
+import Intake.Types (Handler, WalkerInput(..), WalkState(..), Worker, WorkerInput(..))
 import Intake.Walker (walker)
-import Intake.Worker (worker)
+import Intake.Worker (successWorker)
 import Intake.Workflow (toWorkflow, RTask, RToken)
 
 
@@ -53,7 +53,7 @@ processCmd Run{..} = do
   margs <- maybe (return (Right (object []))) parseFileArgs cmdFilePathArgs
   case mdef of
     Right def -> case margs of
-      Right args -> run True def args >> return ()
+      Right args -> run True (successWorker True) def args >> return ()
       Left err -> error err
     Left err -> error err
 
@@ -71,8 +71,8 @@ parseFileArgs filepath = do
 
 
 ------------------------------------------------------------------------------
-run :: Bool -> Workflow Value RTask RToken String -> Value -> IO Value
-run doLog def args = do
+run :: Bool -> Worker -> Workflow Value RTask RToken String -> Value -> IO Value
+run doLog worker def args = do
   -- The walker is not responsible of instanciating the workflow.
   w <- instanciate def args
   walkMV <- newMVar w
@@ -80,7 +80,7 @@ run doLog def args = do
   workerC <- newChan
 
   -- Worker thread.
-  forkIO (worker doLog workerC walkerC)
+  forkIO (worker workerC walkerC)
 
   -- Walker thread.
   writeChan walkerC WalkerStart

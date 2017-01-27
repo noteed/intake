@@ -1,37 +1,60 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 module Intake.Worker where
 
 import Control.Concurrent.Chan (readChan, writeChan, Chan)
 import Control.Monad (when)
-import Data.Aeson (object, (.=))
+import Data.Aeson (object, (.=), Value)
 
-import Intake.Types (WalkerInput(..), WorkerInput(..))
+import Intake.Types (WalkerInput(..), WorkerInput(..), Handler(..), Worker)
 
 
 ------------------------------------------------------------------------------
-worker :: Bool -> Chan WorkerInput -> Chan WalkerInput -> IO ()
-worker doLog inputs walkerC = do
-  input <- readChan inputs
-  case input of
+-- | This worker doesn't do anything beside logging its tasks and returning
+-- always success.
+successWorker :: Bool -> Worker
+successWorker doLog = worker (successHandler doLog)
 
-    WorkerBuild workflow activity args ->
-      handleTask doLog inputs walkerC "WorkerBuild" workflow activity args
+successHandler :: Bool -> Handler
+successHandler doLog = Handler
+  { handleBuild = \inputs walkerC workflow activity args ->
+      successTask doLog inputs walkerC "WorkerBuild" workflow activity args
+  , handleRun = \inputs walkerC workflow activity args ->
+      successTask doLog inputs walkerC "WorkerRrun" workflow activity args
+  , handleClone = \inputs walkerC workflow activity args ->
+      successTask doLog inputs walkerC "WorkerClone" workflow activity args
+  }
 
-    WorkerRun workflow activity args ->
-      handleTask doLog inputs walkerC "WorkerRun" workflow activity args
-
-    WorkerDone ->
-      -- Let the worker die.
-      return ()
-
-handleTask doLog inputs walkerC name workflow activity args = do
+successTask :: Bool -> Chan WorkerInput -> Chan WalkerInput -> String -> String -> String -> Value -> IO ()
+successTask doLog inputs walkerC name workflow activity args = do
   when doLog $ do
     logging ("intake-worker " ++ workflow ++ " Handling task \"" ++ activity ++"\" " ++ name ++ " " ++ show args ++ "...")
     logging ("intake-worker " ++ workflow ++ " Enqueuing task result...")
   let args' = object ["tag" .= ("success" :: String)]
   writeChan walkerC (WalkerTaskResult activity args')
-  worker doLog inputs walkerC
+  successWorker doLog inputs walkerC
+
+
+------------------------------------------------------------------------------
+worker :: Handler -> Chan WorkerInput -> Chan WalkerInput -> IO ()
+worker Handler{..} inputs walkerC = do
+  input <- readChan inputs
+  case input of
+
+    WorkerBuild workflow activity args ->
+      handleBuild inputs walkerC workflow activity args
+
+    WorkerRun workflow activity args ->
+      handleRun inputs walkerC workflow activity args
+
+    WorkerClone workflow activity args ->
+      handleClone inputs walkerC workflow activity args
+
+    WorkerDone ->
+      -- Let the worker die.
+      return ()
 
 
 --------------------------------------------------------------------------------
+logging :: String -> IO ()
 logging = putStrLn
