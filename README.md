@@ -72,3 +72,26 @@ or
     > intake define work workflow.txt
     > intake run work
     2e993bdb7b2d  2e993bdb7b2d8f01522e30cdfbb2a58f7ca663b5e54ba3f1b46b30305e70332a
+
+
+## Tests
+
+TODO.
+
+~~~ {.haskell}
+import Data.Aeson (object)
+import Test.HUnit
+
+import Intake.Commands (parseFile, run)
+
+main :: IO ()
+main = do
+  runTestTT $
+    TestLabel "identity" (TestCase (do
+      Right def <- parseFile "workflows/workflow-sample-00.json"
+      -- TODO Use QuickCheck instead.
+      let input = object []
+      result <- run False def input
+      assertEqual "identity result" input result))
+  return ()
+~~~

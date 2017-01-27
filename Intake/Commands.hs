@@ -53,7 +53,7 @@ processCmd Run{..} = do
   margs <- maybe (return (Right (object []))) parseFileArgs cmdFilePathArgs
   case mdef of
     Right def -> case margs of
-      Right args -> run def args >> return ()
+      Right args -> run True def args >> return ()
       Left err -> error err
     Left err -> error err
 
@@ -71,8 +71,8 @@ parseFileArgs filepath = do
 
 
 ------------------------------------------------------------------------------
-run :: Workflow Value RTask RToken String -> Value -> IO Value
-run def args = do
+run :: Bool -> Workflow Value RTask RToken String -> Value -> IO Value
+run doLog def args = do
   -- The walker is not responsible of instanciating the workflow.
   w <- instanciate def args
   walkMV <- newMVar w
@@ -80,11 +80,11 @@ run def args = do
   workerC <- newChan
 
   -- Worker thread.
-  forkIO (worker workerC walkerC)
+  forkIO (worker doLog workerC walkerC)
 
   -- Walker thread.
   writeChan walkerC WalkerStart
-  output <- walker walkMV walkerC workerC
+  output <- walker doLog walkMV walkerC workerC
 
   -- Kill the worker thread.
   writeChan workerC WorkerDone
