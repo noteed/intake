@@ -4,7 +4,8 @@ Intake runs process workflows (as in UNIX, not business process).
 
 ## Example workflows
 
-The simplest workflow is the identity workflow: its input is its result.
+- [workflows/workflow-sample-00.json](workflows/workflow-sample-00.json)
+  The simplest workflow is the identity workflow: its input is its result.
 
 ## Tentative README (a.k.a. not implemented stuff)
 
