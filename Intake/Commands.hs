@@ -15,7 +15,7 @@ import System.Console.CmdArgs.Explicit
 
 import Lovelace (Workflow)
 
-import Intake.Types (Handler, WalkerInput(..), WalkState(..), Worker, WorkerInput(..))
+import Intake.Types (WalkerInput(..), WalkState(..), Worker, WorkerInput(..))
 import Intake.Walker (walker)
 import Intake.Worker (successWorker)
 import Intake.Workflow (toWorkflow, RTask, RToken)
