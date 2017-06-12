@@ -2,12 +2,15 @@
 
 Intake runs process workflows (as in UNIX, not business process).
 
+
 ## Example workflows
 
 - [workflows/workflow-sample-00.json](workflows/workflow-sample-00.json)
   The simplest workflow is the identity workflow: its input is its result.
 
+
 ## Tentative README (a.k.a. not implemented stuff)
+
 
 ### Running individual commands
 
@@ -52,6 +55,7 @@ Individual commands can be given short names with the `define` sub-command:
     > intake define -c greetings echo hello world
     > intake run greetings
     2e993bdb7b2d  2e993bdb7b2d8f01522e30cdfbb2a58f7ca663b5e54ba3f1b46b30305e70332a
+
 
 ### Running workflows
 

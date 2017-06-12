@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-STACK_IMAGE=${1:-7.8.4}
+STACK_IMAGE=${1:-7.10.3}
 
 docker run \
   -v $(pwd)/../intake:/home/gusdev/intake \
