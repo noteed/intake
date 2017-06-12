@@ -57,12 +57,16 @@ processCmd Run{..} = do
       Left err -> error err
     Left err -> error err
 
+
+------------------------------------------------------------------------------
+parseFile :: String -> IO (Either String (Workflow Value RTask RToken String))
 parseFile filepath = do
   input <- LB.readFile filepath
   case decode input of
     Just definition -> return (toWorkflow definition)
     Nothing -> return (Left "Can't decode input as workflow definition.")
 
+parseFileArgs :: String -> IO (Either String Value)
 parseFileArgs filepath = do
   input <- LB.readFile filepath
   case decode input of
@@ -91,6 +95,9 @@ run doLog worker def args = do
 
   return output
 
+
+------------------------------------------------------------------------------
+instanciate :: Workflow Value RTask RToken String -> Value -> IO WalkState
 instanciate def args = do
   now <- getCurrentTime
   return WalkState

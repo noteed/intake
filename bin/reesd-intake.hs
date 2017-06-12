@@ -5,7 +5,7 @@
 -- with/replace intake.hs.
 module Main (main) where
 
-import System.Console.CmdArgs.Explicit
+import System.Console.CmdArgs.Explicit (processArgs)
 
 import Intake.Commands (intakeModes, processCmd)
 
