@@ -1,7 +1,8 @@
 module Intake.Types where
 
 import Control.Concurrent.Chan (Chan)
-import Data.Aeson (Value)
+import Data.Aeson (encode, Value)
+import qualified Data.ByteString.Lazy.Char8 as LB
 import Data.Text (Text)
 import Data.Time.Clock (UTCTime)
 import Data.Time () -- For the instance Show UTCTime.
@@ -45,3 +46,8 @@ data Handler = Handler
   , handleRun :: Chan WorkerInput -> Chan WalkerInput -> String -> String -> Value -> IO ()
   , handleClone :: Chan WorkerInput -> Chan WalkerInput -> String -> String -> Value -> IO ()
   }
+
+
+------------------------------------------------------------------------------
+showJSON :: Value -> String
+showJSON = LB.unpack . encode

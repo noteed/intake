@@ -6,7 +6,7 @@ import Control.Concurrent.Chan (readChan, writeChan, Chan)
 import Control.Monad (when)
 import Data.Aeson (object, (.=), Value)
 
-import Intake.Types (WalkerInput(..), WorkerInput(..), Handler(..), Worker)
+import Intake.Types (showJSON, WalkerInput(..), WorkerInput(..), Handler(..), Worker)
 
 
 ------------------------------------------------------------------------------
@@ -27,10 +27,10 @@ successHandler doLog = Handler
 
 successTask :: Bool -> Chan WorkerInput -> Chan WalkerInput -> String -> String -> String -> Value -> IO ()
 successTask doLog inputs walkerC name workflow activity args = do
-  when doLog $ do
-    logging ("intake-worker " ++ workflow ++ " Handling task \"" ++ activity ++"\" " ++ name ++ " " ++ show args ++ "...")
-    logging ("intake-worker " ++ workflow ++ " Enqueuing task result...")
   let args' = object ["tag" .= ("success" :: String)]
+  when doLog $ do
+    logging ("intake-worker " ++ workflow ++ " Handling task \"" ++ activity ++"\" " ++ name ++ " " ++ showJSON args ++ "...")
+    logging ("intake-worker " ++ workflow ++ " Enqueuing result " ++ showJSON args')
   writeChan walkerC (WalkerTaskResult activity args')
   successWorker doLog inputs walkerC
 

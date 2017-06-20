@@ -5,12 +5,11 @@ module Intake.Walker where
 import Control.Concurrent.Chan (readChan, writeChan, Chan)
 import Control.Concurrent.MVar (putMVar, takeMVar, MVar)
 import Control.Monad (when)
-import Data.Aeson (encode, object, ToJSON, Value, (.=))
-import qualified Data.ByteString.Lazy.Char8 as LB
+import Data.Aeson (object, ToJSON, Value, (.=))
 
 import Lovelace
 
-import Intake.Types (WalkerInput(..), WalkState(..), WorkerInput(..))
+import Intake.Types (showJSON, WalkerInput(..), WalkState(..), WorkerInput(..))
 import Intake.Workflow
 
 
@@ -76,9 +75,9 @@ handleStep doLog walk workerC (Step workflow a s t) (RToken k) =
     when doLog $
       logging ("intake-walker " ++ workflowName workflow ++ " Completed with \"" ++ activityName a ++ "\" " ++ showJSON t')
     return walk { wsOutput = Just t' }
-  Token t' -> do
+  Token t'@(RToken t_) -> do
     when doLog $
-      logging ("intake-walker " ++ workflowName workflow ++ " Handling token...")
+      logging ("intake-walker " ++ workflowName workflow ++ " Handling token " ++ showJSON t_)
     let s' = continue workflow a s t'
     handleStep doLog walk workerC s' t'
 
@@ -99,11 +98,6 @@ enqueueTask doLog walk workerC workflow a k t = do
     logging ("intake-walker " ++ workflowName workflow ++ " Enqueuing task...")
   writeChan workerC (t (workflowName workflow) (activityName a) k)
   return walk
-
-
-------------------------------------------------------------------------------
-showJSON :: Value -> String
-showJSON = LB.unpack . encode
 
 
 --------------------------------------------------------------------------------
