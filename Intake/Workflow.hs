@@ -18,10 +18,8 @@ import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as LB
 import qualified Data.HashMap.Strict as H
 import Data.Maybe (mapMaybe)
-import qualified Data.Vector as V
-
-import Control.Applicative ((<$>))
 import qualified Data.Text as T
+import qualified Data.Vector as V
 
 import Lovelace hiding (run)
 
