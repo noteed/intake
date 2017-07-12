@@ -1,0 +1,22 @@
+{
+  "name": "override-input",
+  "activity": {
+    "name": "override"
+  },
+  "transitions": [
+    {
+      "after": "override",
+      "on": "bye",
+      "activity": "done"
+    }
+  ],
+  "activities": [
+    {
+      "name": "override",
+      "type": "override",
+      "args": {
+        "tag": "bye"
+      }
+    }
+  ]
+}

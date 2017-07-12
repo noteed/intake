@@ -1,5 +1,5 @@
 {
-  "name": "replace-input",
+  "name": "state",
   "activity": {
     "name": "input"
   },
@@ -7,6 +7,11 @@
     {
       "after": "input",
       "on": "success",
+      "activity": "state"
+    },
+    {
+      "after": "state",
+      "on": "hello",
       "activity": "done"
     }
   ],
@@ -16,6 +21,13 @@
       "type": "input",
       "args": {
         "tag": "success"
+      }
+    },
+    {
+      "name": "state",
+      "type": "state",
+      "args": {
+        "email": "a@example.com"
       }
     }
   ]

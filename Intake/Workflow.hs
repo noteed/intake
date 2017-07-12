@@ -69,6 +69,7 @@ toWorkflow Def{..} = do
 
   mkActivity n = do
     act <- case aType n of
+      -- Tasks
       "barrier" -> return (Task Barrier)
       "build" -> return (Task BuildImageTask)
       "clone" -> return (Task CloneTask)

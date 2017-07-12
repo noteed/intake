@@ -1,0 +1,39 @@
+{
+  "name": "build-reesd-hello",
+  "activity": {
+    "name": "input"
+  },
+  "transitions": [
+    {
+      "after": "input",
+      "on": "success",
+      "activity": "build"
+    },
+    {
+      "after": "build",
+      "on": "failure",
+      "activity": "done"
+    },
+    {
+      "after": "build",
+      "on": "success",
+      "activity": "done"
+    }
+  ],
+  "activities": [
+    {
+      "name": "input",
+      "type": "input",
+      "args": {
+        "tag": "success",
+        "repository": "git@github.com:hypered/reesd-hello#master",
+        "image": "images.reesd.com/reesd/hello",
+        "channel": "random"
+      }
+    },
+    {
+      "name": "build",
+      "type": "build"
+    }
+  ]
+}

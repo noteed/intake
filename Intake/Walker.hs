@@ -24,7 +24,7 @@ walker doLog walkMV inputs workerC = do
       when doLog $
         logging ("intake-walker " ++ workflowName (wsWorkflow walk) ++ " Starting instance with " ++ showJSON (wsArgs walk))
       let t' = RToken (wsArgs walk)
-          s' = start (wsWorkflow walk) (wsArgs walk) t'
+          s' = start (wsWorkflow walk) (wsState walk) t'
       handleStep doLog walk workerC s' t'
 
     WalkerTaskResult activity args -> do

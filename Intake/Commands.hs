@@ -51,10 +51,13 @@ processCmd Run{..} = do
   logging ("Running file " ++ cmdFilePath ++ "...")
   mdef <- parseFile cmdFilePath
   margs <- maybe (return (Right (object []))) parseFileArgs cmdFilePathArgs
+  mstate <- maybe (return (Right (object []))) parseFileArgs cmdFilePathState
   case mdef of
-    Right def -> case margs of
-      Right args -> run True (successWorker True) def args >> return ()
-      Left err -> error err
+    Right def -> case (margs, mstate) of
+      (Right args, Right state) ->
+        run True (successWorker True) def args state >> return ()
+      (Left err, _) -> error err
+      (_, Left err) -> error err
     Left err -> error err
 
 
@@ -75,10 +78,11 @@ parseFileArgs filepath = do
 
 
 ------------------------------------------------------------------------------
-run :: Bool -> Worker -> Workflow Value RTask RToken String -> Value -> IO Value
-run doLog worker def args = do
+run :: Bool -> Worker -> Workflow Value RTask RToken String -> Value -> Value
+  -> IO Value
+run doLog worker def args state = do
   -- The walker is not responsible of instanciating the workflow.
-  w <- instanciate def args
+  w <- instanciate def args state
   walkMV <- newMVar w
   walkerC <- newChan
   workerC <- newChan
@@ -97,15 +101,16 @@ run doLog worker def args = do
 
 
 ------------------------------------------------------------------------------
-instanciate :: Workflow Value RTask RToken String -> Value -> IO WalkState
-instanciate def args = do
+instanciate :: Workflow Value RTask RToken String -> Value -> Value
+  -> IO WalkState
+instanciate def args state = do
   now <- getCurrentTime
   return WalkState
     { wsCreated = now
     , wsWorkflow = def
     , wsType = "JSON"
     , wsArgs = args
-    , wsState = object []
+    , wsState = state
     , wsOutput = Nothing
     }
 
@@ -119,6 +124,7 @@ data Cmd =
   | Run
     { cmdFilePath :: String
     , cmdFilePathArgs :: Maybe String
+    , cmdFilePathState :: Maybe String
     }
   | Help
   | Version
@@ -149,6 +155,7 @@ intakeRunMode = mode' "run" intakeRun
   "Run a JSON workflow file."
   [ fileFlag
   , argsFlag
+  , stateFlag
   ]
 
 
@@ -162,6 +169,11 @@ argsFlag = flagReq ["args"]
   "PATH"
   "JSON workflow input."
 
+stateFlag = flagReq ["state"]
+  (\x r -> Right (r { cmdFilePathState = Just x }))
+  "PATH"
+  "JSON workflow initial state."
+
 ------------------------------------------------------------------------------
 intakeParse = Parse
   { cmdFilePath = ""
@@ -170,6 +182,7 @@ intakeParse = Parse
 intakeRun = Run
   { cmdFilePath = ""
   , cmdFilePathArgs = Nothing
+  , cmdFilePathState = Nothing
   }
 
 

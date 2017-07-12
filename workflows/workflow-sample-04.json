@@ -1,0 +1,22 @@
+{
+  "name": "reset",
+  "activity": {
+    "name": "reset"
+  },
+  "transitions": [
+    {
+      "after": "reset",
+      "on": "identity",
+      "activity": "done"
+    }
+  ],
+  "activities": [
+    {
+      "name": "reset",
+      "type": "reset",
+      "args": [
+        ["name", "tag"]
+      ]
+    }
+  ]
+}
